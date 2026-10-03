@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Lindiwe Dlomo | XR, Game and Interactive Design Portfolio</title>
+<meta name="description" content="Portfolio and showreel of Lindiwe Dlomo: XR (VR/AR) design and development, interactive and software projects, Johannesburg, South Africa." />
+<meta property="og:title" content="Lindiwe Dlomo | XR, Game and Interactive Design Portfolio" />
+<meta property="og:description" content="Showreel and selected projects in XR (VR/AR), game design and animation." />
+<meta property="og:type" content="website" />
+<meta name="theme-color" content="#eceaf6" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+<!--
+  ════════════════════════════════════════════════════════════════
+  HOW TO EDIT THIS PORTFOLIO — everything lives in the CONFIG block
+  at the bottom of this file (search for "CONFIG"). You do not need
+  to touch the HTML or CSS.
+
+    1. SHOWREEL.url  → paste your YouTube / Vimeo / Google Drive link
+                       (must be set to Public or "Anyone with the link").
+    2. PROJECTS      → one entry per project. Add, remove or reorder.
+    3. Anything left empty is simply not shown, so nothing looks unfinished.
+
+  HOSTING: this is a single file. Upload it to GitHub Pages, Netlify,
+  Vercel, or your TechBridge site, then open the link in a private
+  window to confirm it is public before you submit it.
+  ════════════════════════════════════════════════════════════════
+-->
+
+<style>
+  :root {
+    --paper:  #eceaf6;
+    --soft:   #f6f5fc;
+    --white:  #ffffff;
+    --ink:    #17133a;
+    --muted:  #5d5884;
+    --line:   #d3cfea;
+    --blue:   #4636f0;
+    --blue-d: #3527c9;
+    --mint:   #12b8a6;
+    --radius: 18px;
+    --display: 'Bricolage Grotesque', 'Segoe UI', system-ui, sans-serif;
+    --body:    'Figtree', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; scroll-padding-top: 76px; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(--body); font-size: 17px; line-height: 1.65; -webkit-font-smoothing: antialiased; }
+  img, svg, iframe, video { max-width: 100%; display: block; }
+  a { color: inherit; }
+  :focus-visible { outline: 3px solid var(--blue); outline-offset: 3px; border-radius: 6px; }
+  .wrap { width: min(1160px, 100% - 48px); margin-inline: auto; }
+
+  /* ── Header ── */
+  header.top { position: sticky; top: 0; z-index: 30; background: rgba(236,234,246,0.86); backdrop-filter: blur(12px); border-bottom: 1px solid var(--line); }
+  .top-inner { display: flex; align-items: center; justify-content: space-between; height: 64px; }
+  .brand { font-family: var(--display); font-weight: 800; font-size: 1.15rem; text-decoration: none; letter-spacing: -0.01em; }
+  nav.links { display: flex; gap: 26px; font-weight: 600; font-size: 0.95rem; }
+  nav.links a { text-decoration: none; color: var(--muted); padding: 6px 0; border-bottom: 2px solid transparent; }
+  nav.links a:hover { color: var(--ink); border-bottom-color: var(--blue); }
+  @media (max-width: 640px) { nav.links { gap: 16px; font-size: 0.88rem; } }
+
+  /* ── Hero ── */
+  .hero { padding: 64px 0 80px; }
+  .hero-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 44px; }
+  .hero h1 { font-family: var(--display); font-weight: 800; font-size: clamp(3.1rem, 9.5vw, 8rem); line-height: 0.95; letter-spacing: -0.035em; margin: 0 0 22px; }
+  .hero .role { font-family: var(--display); font-weight: 700; font-size: clamp(1.15rem, 2.4vw, 1.6rem); color: var(--blue); margin: 0 0 14px; letter-spacing: -0.01em; }
+  .hero .statement { max-width: 56ch; color: var(--muted); font-size: 1.1rem; margin: 0 0 28px; }
+  .btn-row { display: flex; flex-wrap: wrap; gap: 12px; }
+  .btn { display: inline-block; font: 700 0.98rem var(--body); padding: 13px 24px; border-radius: 12px; text-decoration: none; border: 2px solid var(--ink); transition: transform .15s, background .15s, color .15s; cursor: pointer; }
+  .btn.primary { background: var(--ink); color: var(--white); }
+  .btn.primary:hover { background: var(--blue-d); border-color: var(--blue-d); transform: translateY(-2px); }
+  .btn.ghost { background: transparent; color: var(--ink); }
+  .btn.ghost:hover { background: var(--ink); color: var(--white); transform: translateY(-2px); }
+
+  /* The viewport: AR-style frame with corner brackets */
+  .viewport { position: relative; aspect-ratio: 16 / 9; border-radius: 14px; overflow: hidden; background: linear-gradient(180deg, #cfc8f6 0%, #f3f1ff 62%, #e4e0fa 100%); box-shadow: 0 30px 70px rgba(70,54,240,0.18); }
+  .viewport .corner { position: absolute; width: 34px; height: 34px; border: 3px solid var(--ink); z-index: 4; pointer-events: none; }
+  .viewport .corner.tl { top: 14px; left: 14px; border-right: 0; border-bottom: 0; border-top-left-radius: 8px; }
+  .viewport .corner.tr { top: 14px; right: 14px; border-left: 0; border-bottom: 0; border-top-right-radius: 8px; }
+  .viewport .corner.bl { bottom: 14px; left: 14px; border-right: 0; border-top: 0; border-bottom-left-radius: 8px; }
+  .viewport .corner.br { bottom: 14px; right: 14px; border-left: 0; border-top: 0; border-bottom-right-radius: 8px; }
+  .floor { position: absolute; left: -30%; right: -30%; bottom: -8%; height: 62%; transform: perspective(520px) rotateX(64deg); transform-origin: 50% 100%;
+    background-image: linear-gradient(var(--blue) 2px, transparent 2px), linear-gradient(90deg, var(--blue) 2px, transparent 2px);
+    background-size: 64px 64px; opacity: 0.32; animation: glide 5s linear infinite; }
+  @keyframes glide { to { background-position: 0 64px; } }
+  .orb { position: absolute; left: 50%; top: 24%; width: 24%; transform: translateX(-50%); animation: hover 6s ease-in-out infinite; }
+  @keyframes hover { 0%, 100% { transform: translate(-50%, 0); } 50% { transform: translate(-50%, -12px); } }
+  .viewport .play { position: absolute; inset: 0; display: grid; place-items: center; z-index: 5; background: transparent; border: 0; cursor: pointer; }
+  .viewport .play span { display: inline-flex; align-items: center; gap: 12px; background: var(--ink); color: var(--white); font: 700 1rem var(--body); padding: 14px 24px 14px 18px; border-radius: 50px; box-shadow: 0 14px 30px rgba(23,19,58,0.3); transition: transform .15s, background .15s; }
+  .viewport .play:hover span { transform: scale(1.05); background: var(--blue-d); }
+  .viewport .play svg { width: 26px; height: 26px; }
+  .viewport iframe, .viewport video { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; z-index: 6; background: #000; }
+  .viewport .caption { position: absolute; left: 64px; bottom: 20px; z-index: 4; font-weight: 600; font-size: 0.95rem; color: var(--ink); }
+  @media (min-width: 1060px) {
+    .hero { padding: 56px 0 72px; }
+    .hero-grid { grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); gap: 56px; align-items: center; }
+    .hero h1 { font-size: clamp(3.4rem, 5.6vw, 5.4rem); }
+  }
+  @media (prefers-reduced-motion: reduce) { .floor, .orb { animation: none; } html { scroll-behavior: auto; } }
+
+  /* ── Sections ── */
+  section.block { padding: 84px 0; }
+  section.block.alt { background: var(--soft); border-block: 1px solid var(--line); }
+  h2.title { font-family: var(--display); font-weight: 800; font-size: clamp(2rem, 4.6vw, 3.1rem); letter-spacing: -0.025em; line-height: 1.05; margin: 0 0 14px; }
+  p.intro { color: var(--muted); max-width: 60ch; margin: 0 0 34px; }
+
+  /* Filters */
+  .filters { display: inline-flex; flex-wrap: wrap; gap: 6px; padding: 5px; background: var(--white); border: 1px solid var(--line); border-radius: 14px; margin-bottom: 36px; }
+  .filters button { font: 700 0.92rem var(--body); color: var(--muted); background: transparent; border: 0; padding: 9px 18px; border-radius: 10px; cursor: pointer; }
+  .filters button[aria-pressed="true"] { background: var(--ink); color: var(--white); }
+
+  /* Project rows */
+  .projects { display: grid; gap: 56px; }
+  .project { display: grid; grid-template-columns: minmax(0, 1fr); gap: 26px; }
+  @media (min-width: 900px) { .project { grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 44px; align-items: center; } .project:nth-child(even) .media { order: 2; } }
+  .media { position: relative; aspect-ratio: 16 / 10; border-radius: var(--radius); overflow: hidden; background: linear-gradient(160deg, #d9d3f9, #f1efff); border: 1px solid var(--line); }
+  .media img { width: 100%; height: 100%; object-fit: cover; }
+  .media .scene { position: absolute; inset: 0; display: grid; place-items: center; color: var(--blue); }
+  .media .scene svg { width: 44%; }
+  .media .watch { position: absolute; right: 14px; bottom: 14px; display: inline-flex; align-items: center; gap: 8px; background: var(--ink); color: var(--white); font: 700 0.9rem var(--body); padding: 9px 16px 9px 12px; border-radius: 50px; border: 0; cursor: pointer; }
+  .media .watch:hover { background: var(--blue-d); }
+  .media .watch svg { width: 18px; height: 18px; }
+  .project h3 { font-family: var(--display); font-weight: 800; font-size: clamp(1.5rem, 3vw, 2.1rem); letter-spacing: -0.02em; line-height: 1.1; margin: 0 0 8px; }
+  .project .meta { color: var(--muted); font-weight: 600; font-size: 0.95rem; margin: 0 0 14px; }
+  .project .tag { display: inline-block; margin-bottom: 10px; background: var(--white); border: 1px solid var(--line); color: var(--blue-d); font-weight: 700; font-size: 0.82rem; padding: 3px 12px; border-radius: 30px; margin-right: 6px; }
+  .project p { margin: 0 0 12px; }
+  .project ul { margin: 0 0 14px; padding-left: 20px; }
+  .project li { margin-bottom: 4px; }
+  .project dl { margin: 0 0 16px; display: grid; grid-template-columns: auto 1fr; gap: 4px 16px; font-size: 0.97rem; }
+  .project dt { font-weight: 700; }
+  .project dd { margin: 0; color: var(--muted); }
+  .links { display: flex; flex-wrap: wrap; gap: 14px; }
+  .links a { font-weight: 700; color: var(--blue-d); text-decoration-thickness: 2px; text-underline-offset: 4px; }
+
+  /* Skills */
+  .skills { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 34px 44px; }
+  .skills h3 { font-family: var(--display); font-size: 1.2rem; font-weight: 800; margin: 0 0 8px; padding-bottom: 8px; border-bottom: 2px solid var(--blue); display: inline-block; }
+  .skills p { margin: 0; color: var(--muted); }
+
+  /* About / contact */
+  .about { display: grid; gap: 28px; grid-template-columns: minmax(0, 1fr); }
+  @media (min-width: 900px) { .about { grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr); gap: 56px; } }
+  .about p { margin: 0 0 16px; max-width: 62ch; }
+  .contact-big { font-family: var(--display); font-weight: 800; font-size: clamp(1.4rem, 4.2vw, 2.7rem); letter-spacing: -0.02em; word-break: break-word; }
+  .contact-big a { text-decoration-thickness: 3px; text-underline-offset: 6px; text-decoration-color: var(--blue); }
+  .contact-links { display: flex; flex-wrap: wrap; gap: 22px; margin-top: 20px; font-weight: 700; }
+  footer { padding: 34px 0 44px; color: var(--muted); font-size: 0.92rem; border-top: 1px solid var(--line); }
+
+  /* Video dialog */
+  dialog { width: min(980px, 94vw); padding: 0; border: 0; border-radius: 16px; background: #000; overflow: hidden; }
+  dialog::backdrop { background: rgba(23,19,58,0.65); backdrop-filter: blur(4px); }
+  dialog .frame { position: relative; aspect-ratio: 16 / 9; }
+  dialog iframe, dialog video { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+  dialog .close { position: absolute; top: 10px; right: 10px; z-index: 3; width: 38px; height: 38px; border-radius: 50%; border: 0; background: var(--white); color: var(--ink); font-size: 1.4rem; line-height: 1; cursor: pointer; }
+  [hidden] { display: none !important; }
+</style>
+</head>
+
+<body>
+<header class="top">
+  <div class="wrap top-inner">
+    <a class="brand" href="#top">Lindiwe Dlomo</a>
+    <nav class="links" aria-label="Main">
+      <a href="#showreel" id="nav-showreel" hidden>Showreel</a>
+      <a href="#work">Work</a>
+      <a href="#skills">Skills</a>
+      <a href="#about">About</a>
+      <a href="#contact">Contact</a>
+    </nav>
+  </div>
+</header>
+
+<main id="top">
+  <!-- Hero + showreel viewport -->
+  <section class="hero" id="showreel">
+    <div class="wrap hero-grid">
+      <div>
+        <p class="role" id="hero-role"></p>
+        <h1 id="hero-name"></h1>
+        <p class="statement" id="hero-statement"></p>
+        <div class="btn-row">
+          <button class="btn primary" id="hero-play" type="button" hidden>Watch the showreel</button>
+          <a class="btn primary" id="hero-work" href="#work">See the work</a>
+          <a class="btn ghost" href="#contact">Get in touch</a>
+        </div>
+      </div>
+
+      <div class="viewport" id="viewport" role="region" aria-label="Showreel">
+        <span class="corner tl"></span><span class="corner tr"></span><span class="corner bl"></span><span class="corner br"></span>
+        <div class="floor" aria-hidden="true"></div>
+        <svg class="orb" viewBox="0 0 120 130" fill="none" aria-hidden="true">
+          <ellipse cx="60" cy="118" rx="34" ry="7" fill="#17133a" opacity=".12"/>
+          <path d="M60 8L104 33V82L60 107L16 82V33Z" fill="#4636f0" fill-opacity=".14" stroke="#4636f0" stroke-width="3" stroke-linejoin="round"/>
+          <path d="M16 33L60 58L104 33M60 58V107" stroke="#4636f0" stroke-width="3" stroke-linejoin="round"/>
+          <path d="M60 8L104 33L60 58L16 33Z" fill="#12b8a6" fill-opacity=".28"/>
+        </svg>
+        <button class="play" id="viewport-play" type="button" aria-label="Play showreel" hidden>
+          <span>
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.5-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5Z"/></svg>
+            Play showreel
+          </span>
+        </button>
+        <div class="caption" id="viewport-caption"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Work -->
+  <section class="block alt" id="work">
+    <div class="wrap">
+      <h2 class="title">Selected work</h2>
+      <p class="intro" id="work-intro"></p>
+      <div class="filters" id="filters" role="group" aria-label="Filter projects" hidden></div>
+      <div class="projects" id="projects"></div>
+    </div>
+  </section>
+
+  <!-- Skills -->
+  <section class="block" id="skills">
+    <div class="wrap">
+      <h2 class="title">Skills and tools</h2>
+      <p class="intro">What I work with across XR, software and design.</p>
+      <div class="skills" id="skills-grid"></div>
+    </div>
+  </section>
+
+  <!-- About -->
+  <section class="block alt" id="about">
+    <div class="wrap about">
+      <div>
+        <h2 class="title">About me</h2>
+      </div>
+      <div id="about-copy"></div>
+    </div>
+  </section>
+
+  <!-- Contact -->
+  <section class="block" id="contact">
+    <div class="wrap">
+      <h2 class="title">Let's talk</h2>
+      <p class="intro">Open to opportunities in XR, game design and interactive development.</p>
+      <div class="contact-big"><a id="contact-email" href="#"></a></div>
+      <div class="contact-links" id="contact-links"></div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap" id="footer-line"></div>
+</footer>
+
+<dialog id="video-dialog" aria-label="Project video">
+  <button class="close" id="dialog-close" type="button" aria-label="Close video">&times;</button>
+  <div class="frame" id="dialog-frame"></div>
+</dialog>
+
+<script>
+/* ═════════════════════════════════════════════════════════════
+   CONFIG — edit only this block
+   ═════════════════════════════════════════════════════════════ */
+
+const PROFILE = {
+  name: 'Lindiwe Dlomo',
+  role: 'Software Developer, Business Analyst and XR Designer',
+  statement:
+    'I build software and design immersive VR and AR experiences, turning real learning and business needs into things people can step into.',
+  email: 'lindiwed@techbridgeinnovations.co.za',
+  linkedin: 'https://linkedin.com/in/lindiwedlomo-b50050b8',
+  github: 'https://github.com/LindiweD-Collab',
+  location: 'Johannesburg, South Africa',
+};
+
+/* Paste your showreel link here. YouTube, Vimeo, Google Drive and direct .mp4
+   links all work. Leave url empty to hide the showreel button.
+   Sharing must be Public (or "Anyone with the link"). */
+const SHOWREEL = {
+  url: '',
+  caption: 'Showreel',
+};
+
+/* One object per project. Empty fields are not shown.
+   category must be one of: 'XR / VR', 'Game Design', 'Animation', 'Interactive'.
+   media: image = a URL or relative path (e.g. 'img/vr-lab.jpg'); video = a YouTube/Vimeo/Drive/.mp4 link.
+   Replace or extend the entry below with what you actually built.
+
+   TEMPLATE (copy, paste above and fill in):
+   {
+     title: 'Project name',
+     category: 'Game Design',
+     year: '2025',
+     org: 'Where it was made (TechBridge Innovations, Umuzi, personal project)',
+     role: 'What you did (designer, developer, animator, all of the above)',
+     summary: 'Two sentences: what it is and who it is for.',
+     details: ['One thing you designed or built', 'Another decision or feature'],
+     tools: ['Tools and engines you used'],
+     outcome: 'What happened: who used it, what you learned, a result you can stand behind.',
+     image: '', video: '',
+     links: [{ label: 'Play it', url: 'https://...' }, { label: 'Source code', url: 'https://github.com/...' }]
+   }
+*/
+const PROJECTS = [
+  {
+    title: 'Immersive VR and AR learning experiences',
+    category: 'XR / VR',
+    year: '2024',
+    org: 'TechBridge Innovations',
+    role: 'XR designer',
+    summary:
+      'Virtual and augmented reality experiences designed and prototyped to support digital skills learning.',
+    details: [
+      'Turned learning objectives and user needs into XR concepts and interaction flows.',
+      'Designed spatial UI mockups for navigating and interacting inside the experience.',
+    ],
+    tools: [],
+    outcome: '',
+    image: '',
+    video: '',
+    links: [],
+  },
+];
+
+const SKILL_GROUPS = [
+  { title: 'Extended reality', items: 'Virtual Reality (VR), Augmented Reality (AR), XR Development, Immersive Experience Design, XR Prototyping, Spatial UI/UX, 3D Interaction Design' },
+  { title: 'Software development', items: 'Python, JavaScript, C#, SQL, React, Django, .NET, Object-Oriented Programming, SDLC' },
+  { title: 'Design', items: 'Adobe Photoshop, Adobe Illustrator, Adobe InDesign, Canva, UI Mockups, Typography, Layout Design, Visual Communication, Infographics, Branding and Identity Design' },
+  { title: 'Cloud, data and delivery', items: 'Google Cloud Platform, Docker, CI/CD, Power BI, PostgreSQL, MongoDB, Agile, Scrum, Kanban' },
+];
+
+const ABOUT = [
+  'I am a Business Analyst and Software Developer based in Johannesburg, with experience across software development, business analysis, data analytics, cloud technologies and extended reality design.',
+  'I combine technical skill with communication and problem solving, and I work in Agile teams. I am passionate about using technology, data, design and immersive VR/AR experiences to create real value.',
+  'I am studying Business Analysis and Data at the International University of Applied Sciences, and I completed a Software Development learnership with Umuzi. My certifications include IBM DevOps, Google Data Analytics and Google Business Intelligence.',
+];
+
+/* ═════════════════════════════════════════════════════════════
+   RENDERING — no need to edit below this line
+   ═════════════════════════════════════════════════════════════ */
+
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+/* Turn a share link into something embeddable */
+function toEmbed(url, autoplay) {
+  if (!url) return null;
+  let m;
+  if ((m = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([\w-]{11})/))) {
+    return { type: 'iframe', src: `https://www.youtube.com/embed/${m[1]}?rel=0${autoplay ? '&autoplay=1' : ''}` };
+  }
+  if ((m = url.match(/vimeo\.com\/(?:video\/)?(\d+)/))) {
+    return { type: 'iframe', src: `https://player.vimeo.com/video/${m[1]}${autoplay ? '?autoplay=1' : ''}` };
+  }
+  if ((m = url.match(/drive\.google\.com\/file\/d\/([\w-]+)/))) {
+    return { type: 'iframe', src: `https://drive.google.com/file/d/${m[1]}/preview` };
+  }
+  if (/\.(mp4|webm|mov)(\?.*)?$/i.test(url)) return { type: 'video', src: url };
+  return { type: 'iframe', src: url };
+}
+
+function mediaHTML(embed) {
+  const allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen';
+  return embed.type === 'video'
+    ? `<video src="${esc(embed.src)}" controls autoplay playsinline></video>`
+    : `<iframe src="${esc(embed.src)}" title="Video" allow="${allow}" allowfullscreen loading="lazy"></iframe>`;
+}
+
+/* Scene art used when a project has no image yet */
+const SCENES = {
+  'XR / VR': '<svg viewBox="0 0 96 64" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect fill="currentColor" fill-opacity=".14" x="6" y="12" width="84" height="38" rx="14"/><path d="M30 31a8 8 0 1 0 0 .01M66 31a8 8 0 1 0 0 .01M38 31h20"/></svg>',
+  'Game Design': '<svg viewBox="0 0 96 64" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path fill="currentColor" fill-opacity=".14" d="M24 14h48c9 0 16 7 16 16v10c0 7-5 12-11 12-5 0-7-3-10-6l-3-3H32l-3 3c-3 3-5 6-10 6-6 0-11-5-11-12V30c0-9 7-16 16-16Z"/><path d="M26 28v14M19 35h14"/><circle cx="66" cy="31" r="2.6" fill="currentColor"/><circle cx="76" cy="38" r="2.6" fill="currentColor"/></svg>',
+  'Animation': '<svg viewBox="0 0 96 64" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect fill="currentColor" fill-opacity=".14" x="8" y="8" width="80" height="48" rx="10"/><path d="M16 46C30 46 30 18 48 18S66 46 80 46"/><circle cx="16" cy="46" r="3.4" fill="currentColor"/><circle cx="48" cy="18" r="3.4" fill="currentColor"/><circle cx="80" cy="46" r="3.4" fill="currentColor"/></svg>',
+  'Interactive': '<svg viewBox="0 0 96 64" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect fill="currentColor" fill-opacity=".14" x="8" y="8" width="80" height="48" rx="10"/><path d="M36 26l-8 6 8 6M60 26l8 6-8 6M52 22l-8 20"/></svg>',
+};
+const PLAY_ICON = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.5-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5Z"/></svg>';
+
+/* Hero text */
+$('hero-name').textContent = PROFILE.name;
+$('hero-role').textContent = PROFILE.role;
+$('hero-statement').textContent = PROFILE.statement;
+document.title = `${PROFILE.name} | XR, Game and Interactive Design Portfolio`;
+
+/* Showreel */
+const reel = toEmbed(SHOWREEL.url, true);
+if (reel) {
+  $('nav-showreel').hidden = false;
+  $('hero-play').hidden = false;
+  $('viewport-play').hidden = false;
+  $('viewport-caption').textContent = SHOWREEL.caption || 'Showreel';
+  const startReel = () => {
+    const vp = $('viewport');
+    [...vp.querySelectorAll('.floor, .orb, .play, .caption')].forEach((n) => n.remove());
+    vp.insertAdjacentHTML('beforeend', mediaHTML(reel));
+  };
+  $('viewport-play').addEventListener('click', startReel);
+  $('hero-play').addEventListener('click', () => {
+    $('viewport').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    if ($('viewport-play')) startReel();
+  });
+  $('hero-work').className = 'btn ghost';
+} else {
+  $('viewport-caption').textContent = 'Selected work below';
+}
+
+/* Projects */
+const projects = PROJECTS.filter((p) => p && p.title);
+$('work-intro').textContent = projects.length
+  ? 'Projects across XR, game design, animation and interactive software.'
+  : 'Projects are being added.';
+
+const categories = [...new Set(projects.map((p) => p.category).filter(Boolean))];
+let activeCat = 'All';
+
+function projectHTML(p, i) {
+  const scene = SCENES[p.category] || SCENES['Interactive'];
+  const embed = toEmbed(p.video, true);
+  const meta = [p.org, p.year, p.role].filter(Boolean).map(esc).join(', ');
+  const media = p.image
+    ? `<img src="${esc(p.image)}" alt="${esc(p.title)}" loading="lazy" />`
+    : `<div class="scene" aria-hidden="true">${scene}</div>`;
+  const watch = embed ? `<button class="watch" type="button" data-video="${i}">${PLAY_ICON}Watch demo</button>` : '';
+  const details = (p.details || []).length ? `<ul>${p.details.map((d) => `<li>${esc(d)}</li>`).join('')}</ul>` : '';
+  const facts = [];
+  if ((p.tools || []).length) facts.push(`<dt>Tools</dt><dd>${p.tools.map(esc).join(', ')}</dd>`);
+  if (p.outcome) facts.push(`<dt>Outcome</dt><dd>${esc(p.outcome)}</dd>`);
+  const links = (p.links || []).filter((l) => l && l.url)
+    .map((l) => `<a href="${esc(l.url)}" target="_blank" rel="noopener">${esc(l.label || 'View')}</a>`).join('');
+  return `
+    <article class="project" data-cat="${esc(p.category || '')}">
+      <div class="media">${media}${watch}</div>
+      <div>
+        ${p.category ? `<span class="tag">${esc(p.category)}</span>` : ''}
+        <h3>${esc(p.title)}</h3>
+        ${meta ? `<p class="meta">${meta}</p>` : ''}
+        ${p.summary ? `<p>${esc(p.summary)}</p>` : ''}
+        ${details}
+        ${facts.length ? `<dl>${facts.join('')}</dl>` : ''}
+        ${links ? `<div class="links">${links}</div>` : ''}
+      </div>
+    </article>`;
+}
+
+function renderProjects() {
+  const list = projects.map((p, i) => ({ p, i })).filter(({ p }) => activeCat === 'All' || p.category === activeCat);
+  $('projects').innerHTML = list.map(({ p, i }) => projectHTML(p, i)).join('');
+}
+
+if (categories.length > 1) {
+  const f = $('filters');
+  f.hidden = false;
+  f.innerHTML = ['All', ...categories].map((c) => `<button type="button" aria-pressed="${c === 'All'}" data-cat="${esc(c)}">${esc(c)}</button>`).join('');
+  f.addEventListener('click', (e) => {
+    const b = e.target.closest('button[data-cat]');
+    if (!b) return;
+    activeCat = b.dataset.cat;
+    f.querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    renderProjects();
+  });
+}
+renderProjects();
+
+/* Video dialog */
+const dlg = $('video-dialog');
+$('projects').addEventListener('click', (e) => {
+  const b = e.target.closest('button[data-video]');
+  if (!b) return;
+  const embed = toEmbed(projects[Number(b.dataset.video)].video, true);
+  if (!embed) return;
+  $('dialog-frame').innerHTML = mediaHTML(embed);
+  dlg.showModal();
+});
+const closeDlg = () => { dlg.close(); $('dialog-frame').innerHTML = ''; };
+$('dialog-close').addEventListener('click', closeDlg);
+dlg.addEventListener('click', (e) => { if (e.target === dlg) closeDlg(); });
+dlg.addEventListener('close', () => { $('dialog-frame').innerHTML = ''; });
+
+/* Skills, about, contact */
+$('skills-grid').innerHTML = SKILL_GROUPS.map((g) => `<div><h3>${esc(g.title)}</h3><p>${esc(g.items)}</p></div>`).join('');
+$('about-copy').innerHTML = ABOUT.map((t) => `<p>${esc(t)}</p>`).join('');
+
+const em = $('contact-email');
+em.textContent = PROFILE.email;
+em.href = `mailto:${PROFILE.email}`;
+$('contact-links').innerHTML = [
+  PROFILE.linkedin && `<a href="${esc(PROFILE.linkedin)}" target="_blank" rel="noopener">LinkedIn</a>`,
+  PROFILE.github && `<a href="${esc(PROFILE.github)}" target="_blank" rel="noopener">GitHub</a>`,
+].filter(Boolean).join('');
+$('footer-line').textContent = `${PROFILE.name}, ${PROFILE.location}`;
+</script>
+</body>
+</html>
