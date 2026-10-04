@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<title>Digital Skills Lab | VR and AR learning prototype</title>
+<meta name="description" content="An immersive WebXR learning prototype: three short missions that teach everyday digital skills in VR, AR or any browser." />
+<style>
+  html, body { margin: 0; height: 100%; background: #17133a; overflow: hidden; font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
+  #overlay { position: fixed; inset: 0; z-index: 10; pointer-events: none; color: #fff; }
+  #overlay .bar { position: absolute; top: 12px; left: 12px; right: 12px; display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; flex-wrap: wrap; }
+  #overlay .glass { pointer-events: auto; background: rgba(23, 19, 58, 0.78); border: 1px solid rgba(255,255,255,0.18); border-radius: 14px; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+  .title { padding: 9px 14px; }
+  .title strong { display: block; font-size: 1rem; letter-spacing: -0.01em; }
+  .title span { font-size: 0.78rem; color: #c4bfee; }
+  .actions { display: flex; gap: 8px; padding: 6px; }
+  .actions button { font: 600 0.84rem inherit; font-family: inherit; color: #fff; background: rgba(255,255,255,0.1); border: 0; border-radius: 9px; padding: 8px 12px; cursor: pointer; }
+  .actions button:hover, .actions button:focus-visible { background: #4636f0; outline: none; }
+  #howto { position: absolute; top: 74px; left: 12px; max-width: 340px; padding: 14px 16px; font-size: 0.88rem; line-height: 1.55; display: none; }
+  #howto.open { display: block; }
+  #howto h2 { margin: 0 0 6px; font-size: 1rem; }
+  #howto ul { margin: 0; padding-left: 18px; }
+  #howto li { margin-bottom: 4px; }
+  .credit { position: absolute; left: 12px; bottom: 10px; padding: 6px 12px; font-size: 0.76rem; color: #c4bfee; }
+  .a-enter-vr-button, .a-enter-ar-button { z-index: 11; }
+  @media (max-width: 560px) { .credit { display: none; } }
+</style>
+<script src="aframe.min.js"></script>
+</head>
+
+<body>
+<div id="overlay">
+  <div class="bar">
+    <div class="glass title"><strong>Digital Skills Lab</strong><span>VR and AR learning prototype</span></div>
+    <div class="glass actions">
+      <button id="btn-howto" type="button" aria-expanded="false">How to use</button>
+      <button id="btn-sound" type="button" aria-pressed="true">Sound: on</button>
+      <button id="btn-restart" type="button">Restart</button>
+    </div>
+  </div>
+  <div id="howto" class="glass" role="region" aria-label="How to use">
+    <h2>How to use</h2>
+    <ul>
+      <li><b>Desktop:</b> drag to look around, click to select.</li>
+      <li><b>Phone:</b> move the phone or drag to look, tap to select. Landscape works best.</li>
+      <li><b>VR headset:</b> press the VR button, point a controller and pull the trigger.</li>
+      <li><b>AR:</b> on a supported device, press the AR button to place the lab in your room.</li>
+    </ul>
+  </div>
+  <div class="glass credit">Prototype by Lindiwe Dlomo, TechBridge Innovations</div>
+</div>
+
+<a-scene id="scene"
+  renderer="antialias: true"
+  loading-screen="backgroundColor: #17133a"
+  webxr="optionalFeatures: local-floor, bounded-floor, hand-tracking, hit-test, dom-overlay; overlayElement: #overlay"
+  vr-mode-ui="enabled: true">
+
+  <!-- Lights -->
+  <a-entity light="type: ambient; color: #ffffff; intensity: 0.85"></a-entity>
+  <a-entity light="type: directional; color: #ffffff; intensity: 0.9" position="2 5 3"></a-entity>
+
+  <!-- Environment (hidden automatically in AR so your real room shows through) -->
+  <a-entity id="env"></a-entity>
+
+  <!-- Learning content -->
+  <a-entity id="stage" position="0 1.5 -2.2"></a-entity>
+
+  <!-- Player rig: camera, mouse/touch pointer, and VR controllers -->
+  <a-entity id="rig" position="0 0 0">
+    <a-entity camera="fov: 62" look-controls="pointerLockEnabled: false" wasd-controls="enabled: false" position="0 1.6 0"></a-entity>
+    <a-entity laser-controls="hand: left"  raycaster="objects: .clickable; far: 12; showLine: true"></a-entity>
+    <a-entity laser-controls="hand: right" raycaster="objects: .clickable; far: 12; showLine: true"></a-entity>
+  </a-entity>
+  <a-entity cursor="rayOrigin: mouse; fuse: false" raycaster="objects: .clickable; far: 30"></a-entity>
+</a-scene>
+
+<script>
+(function () {
+  const THREE = AFRAME.THREE;
+  const scene = document.getElementById('scene');
+  const stage = document.getElementById('stage');
+  const env = document.getElementById('env');
+
+  /* ───────── Look and feel ───────── */
+  const PPM = 700; // canvas pixels per metre: keeps text crisp at arm's length
+  const C = {
+    ink: '#17133a', panel: '#1a144e', line: 'rgba(255,255,255,0.16)',
+    text: '#ffffff', muted: '#c4bfee', blue: '#6c5cff', deep: '#3a3190',
+    mint: '#12d3bd', coral: '#ff6b81', amber: '#ffc857', violet: '#a78bfa',
+    paper: '#f7f6ff', paperInk: '#17133a', paperMuted: '#6b6690',
+  };
+  const FONT = "system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif";
+  const MONO = "ui-monospace, 'SF Mono', Menlo, Consolas, monospace";
+  const setFont = (ctx, size, weight, fam) => { ctx.font = `${weight || 500} ${size}px ${fam || FONT}`; };
+
+  /* ───────── Canvas drawing helpers ───────── */
+  function rr(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+  }
+  function fillRR(ctx, x, y, w, h, r, fill, stroke, lw) {
+    rr(ctx, x, y, w, h, r);
+    if (fill) { ctx.fillStyle = fill; ctx.fill(); }
+    if (stroke) { ctx.lineWidth = lw || 3; ctx.strokeStyle = stroke; ctx.stroke(); }
+  }
+  function glass(ctx, W, H, r, accent) {
+    ctx.save();
+    ctx.shadowColor = 'rgba(8,5,40,0.55)'; ctx.shadowBlur = 24; ctx.shadowOffsetY = 8;
+    fillRR(ctx, 14, 10, W - 28, H - 28, r, C.panel);
+    ctx.restore();
+    fillRR(ctx, 14, 10, W - 28, H - 28, r, null, accent || C.line, accent ? 4 : 3);
+  }
+  function wrap(ctx, text, x, y, maxW, lh) {
+    const words = String(text).split(' ');
+    let line = '', yy = y;
+    for (const w of words) {
+      const test = line ? line + ' ' + w : w;
+      if (ctx.measureText(test).width > maxW && line) { ctx.fillText(line, x, yy); line = w; yy += lh; }
+      else line = test;
+    }
+    if (line) { ctx.fillText(line, x, yy); yy += lh; }
+    return yy;
+  }
+  function drawIcon(ctx, type, cx, cy, s, color) {
+    ctx.save();
+    ctx.lineWidth = s * 0.075; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    ctx.strokeStyle = color; ctx.fillStyle = color;
+    if (type === 'mail') {
+      ctx.globalAlpha = 0.22; rr(ctx, cx - s * .55, cy - s * .38, s * 1.1, s * .76, s * .12); ctx.fill(); ctx.globalAlpha = 1;
+      rr(ctx, cx - s * .55, cy - s * .38, s * 1.1, s * .76, s * .12); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(cx - s * .5, cy - s * .28); ctx.lineTo(cx, cy + s * .1); ctx.lineTo(cx + s * .5, cy - s * .28); ctx.stroke();
+    } else if (type === 'lock') {
+      ctx.globalAlpha = 0.22; rr(ctx, cx - s * .42, cy - s * .04, s * .84, s * .6, s * .12); ctx.fill(); ctx.globalAlpha = 1;
+      rr(ctx, cx - s * .42, cy - s * .04, s * .84, s * .6, s * .12); ctx.stroke();
+      ctx.beginPath(); ctx.arc(cx, cy - s * .04, s * .27, Math.PI, 0); ctx.stroke();
+      ctx.beginPath(); ctx.arc(cx, cy + s * .22, s * .06, 0, Math.PI * 2); ctx.fill();
+    } else if (type === 'folder') {
+      const p = () => { ctx.beginPath(); ctx.moveTo(cx - s * .55, cy - s * .3); ctx.lineTo(cx - s * .15, cy - s * .3); ctx.lineTo(cx, cy - s * .16); ctx.lineTo(cx + s * .55, cy - s * .16); ctx.lineTo(cx + s * .55, cy + s * .4); ctx.lineTo(cx - s * .55, cy + s * .4); ctx.closePath(); };
+      ctx.globalAlpha = 0.22; p(); ctx.fill(); ctx.globalAlpha = 1; p(); ctx.stroke();
+    } else if (type === 'file') {
+      const p = () => { ctx.beginPath(); ctx.moveTo(cx - s * .38, cy - s * .5); ctx.lineTo(cx + s * .12, cy - s * .5); ctx.lineTo(cx + s * .38, cy - s * .24); ctx.lineTo(cx + s * .38, cy + s * .5); ctx.lineTo(cx - s * .38, cy + s * .5); ctx.closePath(); };
+      ctx.globalAlpha = 0.22; p(); ctx.fill(); ctx.globalAlpha = 1; p(); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(cx + s * .12, cy - s * .5); ctx.lineTo(cx + s * .12, cy - s * .24); ctx.lineTo(cx + s * .38, cy - s * .24); ctx.stroke();
+    } else if (type === 'star') {
+      ctx.beginPath();
+      for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5; const r = i % 2 ? s * .22 : s * .5; ctx.lineTo(cx + Math.cos(a) * r, cy + Math.sin(a) * r); }
+      ctx.closePath(); ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  /* ───────── Sound (tiny synthesized cues, no files) ───────── */
+  let audio = null, muted = false;
+  function beep(freq, dur, type, vol, delay) {
+    if (muted) return;
+    try {
+      audio = audio || new (window.AudioContext || window.webkitAudioContext)();
+      const t = audio.currentTime + (delay || 0);
+      const o = audio.createOscillator(), g = audio.createGain();
+      o.type = type || 'sine'; o.frequency.value = freq;
+      g.gain.setValueAtTime(vol || 0.05, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      o.connect(g); g.connect(audio.destination); o.start(t); o.stop(t + dur);
+    } catch (e) { /* audio is optional */ }
+  }
+  const sfx = {
+    click: () => beep(520, 0.07, 'triangle', 0.05),
+    good: () => { beep(660, 0.12); beep(880, 0.18, 'sine', 0.05, 0.1); },
+    bad: () => beep(200, 0.25, 'sawtooth', 0.03),
+    win: () => [523, 659, 784, 1047].forEach((f, i) => beep(f, 0.22, 'sine', 0.05, i * 0.11)),
+  };
+
+  /* ───────── Spatial UI toolkit: a canvas-textured panel in 3D ───────── */
+  function makePanel(parent, o) {
+    const cv = document.createElement('canvas');
+    cv.width = Math.round(o.w * PPM); cv.height = Math.round(o.h * PPM);
+    const ctx = cv.getContext('2d');
+    const el = document.createElement('a-plane');
+    el.setAttribute('width', o.w); el.setAttribute('height', o.h);
+    el.setAttribute('position', `${o.x || 0} ${o.y || 0} ${o.z || 0}`);
+    el.setAttribute('material', 'shader: flat; transparent: true; side: front');
+    const clickable = !!o.onClick;
+    if (clickable) el.classList.add('clickable');
+    const state = Object.assign({ hover: false }, o.state || {});
+    let tex = null;
+    el.state = state;
+    el.redraw = (extra) => {
+      if (extra) Object.assign(state, extra);
+      cv.width = cv.width; // resetting the size clears the bitmap AND resets all context state
+      o.draw(ctx, cv.width, cv.height, state);
+      if (tex) tex.needsUpdate = true;
+    };
+    el.dispose = () => { if (tex) tex.dispose(); };
+    el.addEventListener('loaded', () => {
+      const mesh = el.getObject3D('mesh');
+      tex = new THREE.CanvasTexture(cv);
+      if (THREE.SRGBColorSpace) tex.colorSpace = THREE.SRGBColorSpace;
+      tex.anisotropy = 8;
+      mesh.material.map = tex; mesh.material.toneMapped = false; mesh.material.needsUpdate = true;
+    });
+    if (clickable) {
+      const hs = o.hoverScale || 1.04;
+      el.addEventListener('mouseenter', () => { state.hover = true; el.object3D.scale.set(hs, hs, 1); el.redraw(); });
+      el.addEventListener('mouseleave', () => { state.hover = false; el.object3D.scale.set(1, 1, 1); el.redraw(); });
+      el.addEventListener('click', () => { sfx.click(); o.onClick(el); });
+      el.trigger = () => o.onClick(el); // used for automated checks
+    }
+    el.redraw();
+    (parent || stage).appendChild(el);
+    return el;
+  }
+  function removePanel(el) { if (!el) return; el.dispose && el.dispose(); if (el.parentNode) el.parentNode.removeChild(el); }
+  function clearStage() { [...stage.children].forEach(removePanel); }
+
+  function button(o) {
+    return makePanel(stage, {
+      w: o.w || 0.8, h: o.h || 0.3, x: o.x, y: o.y, z: o.z == null ? 0.03 : o.z, onClick: o.onClick,
+      draw: (ctx, W, H, s) => {
+        const color = o.color || C.blue;
+        ctx.save();
+        if (s.hover) { ctx.shadowColor = color; ctx.shadowBlur = 34; }
+        fillRR(ctx, 12, 12, W - 24, H - 24, (H - 24) / 2.2, color);
+        ctx.restore();
+        if (s.hover) fillRR(ctx, 12, 12, W - 24, H - 24, (H - 24) / 2.2, 'rgba(255,255,255,0.18)', 'rgba(255,255,255,0.85)', 3);
+        setFont(ctx, o.fs || 32, 700); ctx.fillStyle = o.textColor || '#fff';
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText(o.label, W / 2, H / 2 + 2);
+      },
+    });
+  }
+
+  /* ───────── Progress ───────── */
+  const progress = { phish: false, password: false, files: false };
+  let celebrated = false;
+  const doneCount = () => Object.values(progress).filter(Boolean).length;
+  let current = {}; // handle on the active screen (also used by automated checks)
+
+  function header(title, sub) {
+    const hdr = makePanel(stage, {
+      w: 3.0, h: 0.34, y: 0.88, state: { sub },
+      draw: (ctx, W, H, s) => {
+        glass(ctx, W, H, H / 2.3);
+        ctx.textBaseline = 'middle'; ctx.textAlign = 'left';
+        setFont(ctx, 46, 800); ctx.fillStyle = C.text; ctx.fillText(title, 60, H / 2 - 2);
+        setFont(ctx, 31, 600); ctx.fillStyle = C.muted; ctx.textAlign = 'right'; ctx.fillText(s.sub || '', W * 0.765, H / 2 - 2);
+      },
+    });
+    button({ label: 'Back to lab', x: 1.17, y: 0.88, w: 0.62, h: 0.26, fs: 29, color: C.deep, onClick: () => show('hub') });
+    return hdr;
+  }
+
+  const screens = {};
+
+  /* ───────── HUB ───────── */
+  screens.hub = function () {
+    current = {};
+    makePanel(stage, {
+      w: 3.0, h: 0.62, y: 0.7,
+      draw: (ctx, W, H) => {
+        glass(ctx, W, H, 44);
+        ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+        setFont(ctx, 88, 800); ctx.fillStyle = C.text; ctx.fillText('Digital Skills Lab', 76, H * 0.52);
+        setFont(ctx, 37, 500); ctx.fillStyle = C.muted; ctx.fillText('Three short missions. Point and click to start one.', 80, H * 0.52 + 66);
+        // decorative orbs
+        const g = ctx.createLinearGradient(W - 340, 0, W - 60, H);
+        g.addColorStop(0, C.mint); g.addColorStop(1, C.violet);
+        ctx.globalAlpha = 0.9; ctx.fillStyle = g; ctx.beginPath(); ctx.arc(W - 150, H / 2 - 4, 54, 0, Math.PI * 2); ctx.fill();
+        ctx.globalAlpha = 0.5; ctx.beginPath(); ctx.arc(W - 232, H / 2 + 22, 30, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1;
+      },
+    });
+
+    const missions = [
+      { id: 'phish', icon: 'mail', color: C.coral, title: 'Spot the phish', desc: 'Read four emails and decide which ones are scams.', x: -1.05 },
+      { id: 'password', icon: 'lock', color: C.mint, title: 'Build a strong password', desc: 'Combine characters until your password passes every check.', x: 0 },
+      { id: 'files', icon: 'folder', color: C.violet, title: 'Sort the files', desc: 'Put six files into the folders where they belong.', x: 1.05 },
+    ];
+    current.cards = missions.map((m) => makePanel(stage, {
+      w: 0.95, h: 1.0, x: m.x, y: -0.12, hoverScale: 1.05, onClick: () => show(m.id),
+      draw: (ctx, W, H, s) => {
+        glass(ctx, W, H, 44, s.hover ? m.color : null);
+        ctx.save(); ctx.beginPath(); rr(ctx, 14, 10, W - 28, H - 28, 44); ctx.clip();
+        ctx.fillStyle = m.color; ctx.globalAlpha = s.hover ? 0.28 : 0.16; ctx.fillRect(14, 10, W - 28, 150); ctx.restore();
+        drawIcon(ctx, m.icon, W / 2, 92, 96, m.color);
+        ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+        setFont(ctx, 44, 800); ctx.fillStyle = C.text;
+        let y = wrap2(ctx, m.title, W / 2, 228, W - 80, 50);
+        setFont(ctx, 30, 500); ctx.fillStyle = C.muted;
+        wrap2(ctx, m.desc, W / 2, y + 14, W - 90, 40);
+        const done = progress[m.id];
+        fillRR(ctx, W / 2 - 120, H - 108, 240, 64, 32, done ? C.mint : s.hover ? C.blue : 'rgba(255,255,255,0.14)');
+        setFont(ctx, 32, 700); ctx.fillStyle = done ? C.ink : C.text; ctx.textBaseline = 'middle';
+        ctx.fillText(done ? 'Done' : 'Start', W / 2, H - 75);
+      },
+    }));
+
+    makePanel(stage, {
+      w: 3.0, h: 0.38, y: -0.86,
+      draw: (ctx, W, H) => {
+        glass(ctx, W, H, H / 2.4);
+        const n = doneCount();
+        ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+        setFont(ctx, 34, 700); ctx.fillStyle = C.text;
+        ctx.fillText(n === 3 ? 'All missions complete' : `${n} of 3 missions complete`, 60, H / 2 - 4);
+        // progress bar
+        const bx = 560, bw = 640, by = H / 2 - 14;
+        fillRR(ctx, bx, by, bw, 24, 12, 'rgba(255,255,255,0.14)');
+        if (n > 0) fillRR(ctx, bx, by, bw * n / 3, 24, 12, C.mint);
+        if (n === 3) {
+          drawIcon(ctx, 'star', 1268, H / 2 - 4, 50, C.amber);
+        }
+        setFont(ctx, 30, 600); ctx.fillStyle = n === 3 ? C.amber : C.muted; ctx.textAlign = 'right';
+        ctx.fillText(n === 3 ? 'Badge earned: Digital Skills Starter' : 'Finish all three to earn your badge', W - 56, H / 2 - 4);
+      },
+    });
+    if (doneCount() === 3 && !celebrated) { celebrated = true; sfx.win(); }
+  };
+  // wrap helper that also returns the next y and keeps centre alignment
+  function wrap2(ctx, text, x, y, maxW, lh) { return wrap(ctx, text, x, y, maxW, lh); }
+
+  /* ───────── MISSION 1: Spot the phish ───────── */
+  const EMAILS = [
+    { from: 'Learner Support <support@brightpath-academy.org>', subject: 'Your class starts Monday at 09:00',
+      body: 'Hi there, a reminder that your first live class starts on Monday at 09:00. You can join from your student portal. See you there.',
+      phish: false, explain: 'Safe. It asks for no personal details or money, there is no pressure, and it points you to the portal you already use.' },
+    { from: 'Bank Security <alerts@secure-bank-verify.com>', subject: 'URGENT: your account will be closed in 24 hours',
+      body: 'We detected unusual activity. Click the link below and enter your card PIN and password to keep your account open.',
+      phish: true, explain: 'Phishing. The sender domain is not a real bank, it forces you to act within 24 hours, and no bank asks for your PIN or password by email.' },
+    { from: 'City Library <loans@citylibrary.example>', subject: 'Reminder: your book is due on Friday',
+      body: 'Your loan of "Coding for Beginners" is due back on Friday. You can renew it online or at the front desk.',
+      phish: false, explain: 'Safe. The message is calm and specific, asks for nothing sensitive, and you can renew in person or on the library site you already know.' },
+    { from: 'Prize Centre <winner@free-gifts-now.biz>', subject: 'You won R50 000!!! Claim today',
+      body: 'Congratulations! To receive your prize, reply with your ID number and bank details. Offer ends tonight.',
+      phish: true, explain: 'Phishing. An unexpected prize, a deadline ("ends tonight") and a request for your ID number and bank details are classic scam signs.' },
+  ];
+
+  screens.phish = function () { phishQ(0, 0); };
+
+  function phishQ(i, score) {
+    clearStage();
+    const n = EMAILS.length, e = EMAILS[i];
+    current = { screen: 'phish', index: i, score };
+    header('Mission 1: Spot the phish', `Email ${i + 1} of ${n}`);
+
+    makePanel(stage, {
+      w: 2.2, h: 0.84, y: 0.24,
+      draw: (ctx, W, H) => {
+        ctx.save(); ctx.shadowColor = 'rgba(8,5,40,0.55)'; ctx.shadowBlur = 26; ctx.shadowOffsetY = 8;
+        fillRR(ctx, 16, 12, W - 32, H - 32, 34, C.paper); ctx.restore();
+        ctx.fillStyle = '#6c5cff'; ctx.globalAlpha = 0.14; ctx.fillRect(16, 12, W - 32, 74); ctx.globalAlpha = 1;
+        ctx.save(); ctx.beginPath(); rr(ctx, 16, 12, W - 32, H - 32, 34); ctx.clip();
+        ctx.fillStyle = 'rgba(108,92,255,0.14)'; ctx.fillRect(16, 12, W - 32, 74); ctx.restore();
+        ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+        setFont(ctx, 30, 800); ctx.fillStyle = C.blue; ctx.fillText('Inbox', 56, 50);
+        ctx.textBaseline = 'alphabetic';
+        // sender row
+        const initial = e.from.trim().charAt(0).toUpperCase();
+        ctx.fillStyle = C.blue; ctx.beginPath(); ctx.arc(86, 150, 30, 0, Math.PI * 2); ctx.fill();
+        setFont(ctx, 30, 800); ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(initial, 86, 152);
+        ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+        setFont(ctx, 25, 600); ctx.fillStyle = C.paperMuted; ctx.fillText('From', 134, 134);
+        setFont(ctx, 34, 700); ctx.fillStyle = C.paperInk; ctx.fillText(e.from, 134, 172);
+        // subject
+        setFont(ctx, 50, 800); ctx.fillStyle = C.paperInk; const y = wrap(ctx, e.subject, 56, 262, W - 112, 58);
+        ctx.fillStyle = 'rgba(23,19,58,0.12)'; ctx.fillRect(56, y - 24, W - 112, 3);
+        setFont(ctx, 38, 500); ctx.fillStyle = '#3a3566'; wrap(ctx, e.body, 56, y + 34, W - 112, 54);
+      },
+    });
+
+    let answered = false;
+    const decide = (saysPhish) => {
+      if (answered) return; answered = true;
+      const ok = saysPhish === e.phish;
+      if (ok) sfx.good(); else sfx.bad();
+      removePanel(bSafe); removePanel(bPhish);
+      const newScore = score + (ok ? 1 : 0);
+      current.score = newScore;
+      makePanel(stage, {
+        w: 2.2, h: 0.62, y: -0.56,
+        draw: (ctx, W, H) => {
+          glass(ctx, W, H, 36, ok ? C.mint : C.coral);
+          ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+          setFont(ctx, 46, 800); ctx.fillStyle = ok ? C.mint : C.coral; ctx.fillText(ok ? 'Correct' : 'Not quite', 60, 84);
+          setFont(ctx, 30, 500); ctx.fillStyle = C.text; wrap(ctx, e.explain, 60, 134, W - 620, 40);
+        },
+      });
+      button({ label: i < n - 1 ? 'Next email' : 'See result', x: 0.72, y: -0.56, w: 0.62, h: 0.28, fs: 32, color: C.blue,
+        onClick: () => (i < n - 1 ? phishQ(i + 1, newScore) : phishResult(newScore)) });
+    };
+    const bSafe = button({ label: 'It is safe', x: -0.55, y: -0.56, w: 1.0, h: 0.34, fs: 42, color: C.mint, textColor: C.ink, onClick: () => decide(false) });
+    const bPhish = button({ label: 'It is phishing', x: 0.55, y: -0.56, w: 1.0, h: 0.34, fs: 42, color: C.coral, textColor: C.ink, onClick: () => decide(true) });
+    current.answer = decide;
+  }
+
+  function phishResult(score) {
+    clearStage();
+    const n = EMAILS.length, pass = score >= 3;
+    current = { screen: 'phish-result' };
+    header('Mission 1: Spot the phish', 'Result');
+    makePanel(stage, {
+      w: 2.2, h: 1.0, y: 0.1,
+      draw: (ctx, W, H) => {
+        glass(ctx, W, H, 44, pass ? C.mint : C.amber);
+        ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+        setFont(ctx, 80, 800); ctx.fillStyle = C.text; ctx.fillText(`You spotted ${score} of ${n}`, W / 2, 170);
+        setFont(ctx, 35, 500); ctx.fillStyle = C.muted;
+        wrap(ctx, pass ? 'Well done. Before you click, check the sender address, look for pressure to act fast, and ask what the message wants from you.'
+                       : 'Score 3 or more to complete the mission. Check the sender address, look for pressure to act fast, and ask what the message wants from you.', W / 2, 252, W - 260, 50);
+        if (pass) drawIcon(ctx, 'star', W / 2, H - 120, 54, C.amber);
+      },
+    });
+    if (pass) { progress.phish = true; sfx.win(); }
+    button({ label: 'Try again', x: -0.55, y: -0.7, w: 0.9, h: 0.32, fs: 38, color: C.deep, onClick: () => phishQ(0, 0) });
+    button({ label: 'Back to lab', x: 0.55, y: -0.7, w: 0.9, h: 0.32, fs: 38, color: C.blue, onClick: () => show('hub') });
+  }
+
+  /* ───────── MISSION 2: Build a strong password ───────── */
+  const TILE_ROWS = [
+    { chars: ['a', 'e', 'k', 'm', 'r', 't'], color: C.blue },
+    { chars: ['B', 'L', 'S', 'Q', 'H', 'W'], color: C.violet },
+    { chars: ['2', '7', '9', '4', '0', '5'], color: C.mint },
+    { chars: ['!', '#', '@', '$', '%', '&'], color: C.coral },
+  ];
+  const RULES = [
+    { key: 'len', label: '12 or more characters', test: (p) => p.length >= 12 },
+    { key: 'upper', label: 'An uppercase letter', test: (p) => /[A-Z]/.test(p) },
+    { key: 'lower', label: 'A lowercase letter', test: (p) => /[a-z]/.test(p) },
+    { key: 'num', label: 'A number', test: (p) => /[0-9]/.test(p) },
+    { key: 'sym', label: 'A symbol', test: (p) => /[^A-Za-z0-9]/.test(p) },
+  ];
+
+  screens.password = function () {
+    clearStage();
+    let pw = '', finishBtn = null;
+    current = { screen: 'password' };
+    header('Mission 2: Build a strong password', 'Tap the tiles');
+
+    const display = makePanel(stage, {
+      w: 1.62, h: 0.34, x: -0.62, y: 0.5, state: { pw },
+      draw: (ctx, W, H, s) => {
+        glass(ctx, W, H, H / 2.4);
+        ctx.textBaseline = 'middle'; ctx.textAlign = 'left';
+        setFont(ctx, 26, 700); ctx.fillStyle = C.muted; ctx.fillText('YOUR PASSWORD', 46, 42);
+        setFont(ctx, 54, 700, MONO); ctx.fillStyle = s.pw ? C.text : 'rgba(255,255,255,0.28)';
+        const shown = s.pw || 'start tapping...';
+        // shrink long strings to fit
+        let size = 54; while (ctx.measureText(shown).width > W - 140 && size > 28) { size -= 2; setFont(ctx, size, 700, MONO); }
+        ctx.fillText(shown, 46, H / 2 + 22);
+        setFont(ctx, 26, 700); ctx.fillStyle = C.muted; ctx.textAlign = 'right'; ctx.fillText(`${s.pw.length} characters`, W - 46, 42);
+      },
+    });
+
+    const checklist = makePanel(stage, {
+      w: 1.0, h: 1.5, x: 0.95, y: -0.1, state: { pw },
+      draw: (ctx, W, H, s) => {
+        const passed = RULES.filter((r) => r.test(s.pw)).length;
+        const col = passed <= 2 ? C.coral : passed < 5 ? C.amber : C.mint;
+        glass(ctx, W, H, 40, passed === 5 ? C.mint : null);
+        ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+        setFont(ctx, 46, 800); ctx.fillStyle = C.text; ctx.fillText('Strength', 48, 92);
+        for (let i = 0; i < 5; i++) fillRR(ctx, 48 + i * 124, 124, 112, 22, 11, i < passed ? col : 'rgba(255,255,255,0.14)');
+        setFont(ctx, 34, 800); ctx.fillStyle = col; ctx.fillText(passed <= 2 ? 'Weak' : passed < 5 ? 'Getting there' : 'Strong', 48, 204);
+        RULES.forEach((r, i) => {
+          const y = 290 + i * 112, ok = r.test(s.pw);
+          ctx.beginPath(); ctx.arc(80, y, 26, 0, Math.PI * 2);
+          ctx.fillStyle = ok ? C.mint : 'rgba(255,255,255,0.12)'; ctx.fill();
+          if (ok) { ctx.strokeStyle = C.ink; ctx.lineWidth = 6; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.beginPath(); ctx.moveTo(69, y); ctx.lineTo(77, y + 10); ctx.lineTo(92, y - 10); ctx.stroke(); }
+          setFont(ctx, 30, ok ? 800 : 500); ctx.fillStyle = ok ? C.text : C.muted; ctx.textBaseline = 'middle'; ctx.fillText(r.label, 124, y + 1);
+        });
+        if (passed === 5) { setFont(ctx, 27, 600); ctx.fillStyle = C.muted; ctx.textBaseline = 'alphabetic'; wrap(ctx, 'Tip: longer is stronger, and never reuse a password.', 48, H - 96, W - 96, 36); }
+      },
+    });
+
+    const update = () => {
+      display.redraw({ pw }); checklist.redraw({ pw });
+      const all = RULES.every((r) => r.test(pw));
+      if (all && !finishBtn) {
+        sfx.good();
+        finishBtn = button({ label: 'Finish mission', x: 0.95, y: -0.97, w: 0.9, h: 0.3, fs: 36, color: C.mint, textColor: C.ink,
+          onClick: () => { progress.password = true; sfx.win(); show('hub'); } });
+      } else if (!all && finishBtn) { removePanel(finishBtn); finishBtn = null; }
+    };
+
+    const rowGap = 0.27, x0 = -0.62 - (5 * rowGap) / 2;
+    TILE_ROWS.forEach((row, ri) => row.chars.forEach((ch, ci) => {
+      makePanel(stage, {
+        w: 0.24, h: 0.24, x: x0 + ci * rowGap, y: 0.17 - ri * 0.27, hoverScale: 1.12,
+        onClick: () => { if (pw.length < 24) { pw += ch; update(); } },
+        draw: (ctx, W, H, s) => {
+          ctx.save(); if (s.hover) { ctx.shadowColor = row.color; ctx.shadowBlur = 24; }
+          fillRR(ctx, 8, 8, W - 16, H - 16, 26, row.color); ctx.restore();
+          if (s.hover) fillRR(ctx, 8, 8, W - 16, H - 16, 26, 'rgba(255,255,255,0.2)');
+          setFont(ctx, 84, 800, MONO); ctx.fillStyle = C.ink; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(ch, W / 2, H / 2 + 6);
+        },
+      });
+    }));
+    button({ label: 'Delete', x: -0.99, y: -0.92, w: 0.7, h: 0.26, fs: 36, color: C.deep, onClick: () => { pw = pw.slice(0, -1); update(); } });
+    button({ label: 'Clear', x: -0.25, y: -0.92, w: 0.7, h: 0.26, fs: 36, color: C.deep, onClick: () => { pw = ''; update(); } });
+    current.type = (s) => { pw = s; update(); };
+  };
+
+  /* ───────── MISSION 3: Sort the files ───────── */
+  const FILES = [
+    { name: 'holiday.jpg', ext: 'JPG', folder: 'Pictures' },
+    { name: 'budget.xlsx', ext: 'XLSX', folder: 'Documents' },
+    { name: 'song.mp3', ext: 'MP3', folder: 'Music' },
+    { name: 'cv.pdf', ext: 'PDF', folder: 'Documents' },
+    { name: 'party.png', ext: 'PNG', folder: 'Pictures' },
+    { name: 'podcast.mp3', ext: 'MP3', folder: 'Music' },
+  ];
+  const FOLDERS = [
+    { name: 'Documents', color: C.blue, x: -0.95 },
+    { name: 'Pictures', color: C.coral, x: 0 },
+    { name: 'Music', color: C.mint, x: 0.95 },
+  ];
+
+  screens.files = function () {
+    clearStage();
+    current = { screen: 'files' };
+    header('Mission 3: Sort the files', 'Pick a file, then its folder');
+    let selected = null, sorted = 0;
+    const counts = { Documents: 0, Pictures: 0, Music: 0 };
+    const cardEls = [];
+
+    const status = makePanel(stage, {
+      w: 2.6, h: 0.3, y: 0.52, state: { msg: 'Pick a file below, then pick the folder it belongs in.', tone: 'info' },
+      draw: (ctx, W, H, s) => {
+        glass(ctx, W, H, H / 2.3, s.tone === 'good' ? C.mint : s.tone === 'bad' ? C.coral : null);
+        setFont(ctx, 35, 700); ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillStyle = s.tone === 'good' ? C.mint : s.tone === 'bad' ? C.coral : C.text; ctx.fillText(s.msg, W / 2, H / 2 - 4);
+      },
+    });
+
+    const folderEls = FOLDERS.map((f) => makePanel(stage, {
+      w: 0.85, h: 0.64, x: f.x, y: 0.08, hoverScale: 1.05, state: { flash: false },
+      onClick: (el) => dropOn(f, el),
+      draw: (ctx, W, H, s) => {
+        glass(ctx, W, H, 40, s.hover ? f.color : null);
+        drawIcon(ctx, 'folder', W / 2, 140, 130, f.color);
+        ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+        setFont(ctx, 44, 800); ctx.fillStyle = C.text; ctx.fillText(f.name, W / 2, 272);
+        setFont(ctx, 31, 600); ctx.fillStyle = C.muted; ctx.fillText(`${counts[f.name]} file${counts[f.name] === 1 ? '' : 's'}`, W / 2, 322);
+      },
+    }));
+
+    const fileX = (i) => -1.25 + i * 0.5;
+    FILES.forEach((file, i) => {
+      const el = makePanel(stage, {
+        w: 0.44, h: 0.56, x: fileX(i), y: -0.55, hoverScale: 1.07, state: { sel: false },
+        onClick: () => selectFile(i),
+        draw: (ctx, W, H, s) => {
+          glass(ctx, W, H, 34, s.sel ? C.amber : s.hover ? C.violet : null);
+          drawIcon(ctx, 'file', W / 2, 118, 96, s.sel ? C.amber : C.violet);
+          ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+          fillRR(ctx, W / 2 - 64, 172, 128, 46, 23, s.sel ? C.amber : 'rgba(255,255,255,0.14)');
+          setFont(ctx, 27, 800); ctx.fillStyle = s.sel ? C.ink : C.text; ctx.fillText(file.ext, W / 2, 196);
+          setFont(ctx, 28, 700); ctx.fillStyle = C.text; ctx.fillText(file.name, W / 2, 262);
+        },
+      });
+      cardEls[i] = el;
+    });
+
+    function selectFile(i) {
+      if (!cardEls[i]) return;
+      selected = i;
+      cardEls.forEach((el, k) => {
+        if (!el) return;
+        el.redraw({ sel: k === i });
+        el.object3D.position.y = k === i ? -0.5 : -0.55;
+      });
+      status.redraw({ msg: `Selected ${FILES[i].name}. Now pick its folder.`, tone: 'info' });
+    }
+
+    function dropOn(folder, folderEl) {
+      if (selected == null) { status.redraw({ msg: 'Pick a file first.', tone: 'bad' }); sfx.bad(); return; }
+      const file = FILES[selected];
+      if (file.folder === folder.name) {
+        sfx.good();
+        counts[folder.name]++; sorted++;
+        removePanel(cardEls[selected]); cardEls[selected] = null; selected = null;
+        folderEl.redraw();
+        status.redraw({ msg: `Correct: ${file.name} belongs in ${folder.name}.`, tone: 'good' });
+        if (sorted === FILES.length) finish();
+      } else {
+        sfx.bad();
+        const fl = makePanel(stage, { w: 0.85, h: 0.64, x: folder.x, y: 0.08, z: 0.02,
+          draw: (ctx, W, H) => { fillRR(ctx, 14, 10, W - 28, H - 28, 40, 'rgba(255,107,129,0.28)', C.coral, 5); } });
+        setTimeout(() => removePanel(fl), 650);
+        status.redraw({ msg: `Not quite. Look at the file type (${file.ext}) and try again.`, tone: 'bad' });
+      }
+    }
+
+    function finish() {
+      progress.files = true; sfx.win();
+      status.redraw({ msg: 'All six files sorted.', tone: 'good' });
+      makePanel(stage, {
+        w: 2.2, h: 0.5, y: -0.6,
+        draw: (ctx, W, H) => {
+          glass(ctx, W, H, 36, C.mint);
+          ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+          setFont(ctx, 44, 800); ctx.fillStyle = C.mint; ctx.fillText('Mission complete', 60, H / 2 - 12);
+          setFont(ctx, 28, 500); ctx.fillStyle = C.muted; ctx.fillText('Matching file types to folders keeps everything easy to find.', 60, H / 2 + 40);
+        },
+      });
+      button({ label: 'Back to lab', x: 0.78, y: -0.6, w: 0.62, h: 0.28, fs: 32, color: C.blue, onClick: () => show('hub') });
+    }
+
+    current.pick = selectFile;
+    current.drop = (name) => { const idx = FOLDERS.findIndex((f) => f.name === name); dropOn(FOLDERS[idx], folderEls[idx]); };
+    current.sortAll = () => { FILES.forEach((f, i) => { selectFile(i); current.drop(f.folder); }); };
+  };
+
+  /* ───────── Screen switching ───────── */
+  function show(name) { clearStage(); fitStage(); screens[name](); }
+
+  /* ───────── Environment: sky, glowing floor, floating shapes ───────── */
+  function canvasMap(el, cv, order) {
+    el.addEventListener('loaded', () => {
+      const mesh = el.getObject3D('mesh');
+      mesh.renderOrder = order || 0;
+      const t = new THREE.CanvasTexture(cv);
+      if (THREE.SRGBColorSpace) t.colorSpace = THREE.SRGBColorSpace;
+      mesh.material.map = t; mesh.material.toneMapped = false; mesh.material.needsUpdate = true;
+    });
+  }
+  (function buildEnvironment() {
+    // Sky gradient with a sprinkle of stars
+    const sc = document.createElement('canvas'); sc.width = 2048; sc.height = 1024;
+    const sx = sc.getContext('2d');
+    const g = sx.createLinearGradient(0, 0, 0, 1024);
+    g.addColorStop(0, '#120e3d'); g.addColorStop(0.42, '#3a2fb0'); g.addColorStop(0.5, '#8d7fff'); g.addColorStop(0.56, '#2a2170'); g.addColorStop(1, '#17133a');
+    sx.fillStyle = g; sx.fillRect(0, 0, 2048, 1024);
+    let seed = 11; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+    for (let i = 0; i < 220; i++) { sx.globalAlpha = 0.2 + rnd() * 0.55; sx.fillStyle = '#fff'; sx.beginPath(); sx.arc(rnd() * 2048, 140 + rnd() * 330, 0.5 + rnd() * 0.8, 0, 6.3); sx.fill(); }
+    const sky = document.createElement('a-sky'); sky.setAttribute('radius', 60); sky.setAttribute('material', 'shader: flat; fog: false; depthWrite: false');
+    canvasMap(sky, sc, -3); env.appendChild(sky);
+
+    // Floor grid that fades into the distance
+    const fc = document.createElement('canvas'); fc.width = 1024; fc.height = 1024;
+    const fx = fc.getContext('2d');
+    fx.strokeStyle = 'rgba(160,150,255,0.65)'; fx.lineWidth = 2;
+    for (let i = 0; i <= 32; i++) { const p = (i / 32) * 1024; fx.beginPath(); fx.moveTo(p, 0); fx.lineTo(p, 1024); fx.stroke(); fx.beginPath(); fx.moveTo(0, p); fx.lineTo(1024, p); fx.stroke(); }
+    fx.globalCompositeOperation = 'destination-in';
+    const rg = fx.createRadialGradient(512, 512, 40, 512, 512, 512); rg.addColorStop(0, 'rgba(0,0,0,1)'); rg.addColorStop(1, 'rgba(0,0,0,0)');
+    fx.fillStyle = rg; fx.fillRect(0, 0, 1024, 1024);
+    const floor = document.createElement('a-circle');
+    floor.setAttribute('radius', 16); floor.setAttribute('rotation', '-90 0 0'); floor.setAttribute('position', '0 0.001 0');
+    floor.setAttribute('material', 'shader: flat; transparent: true; side: front; depthWrite: false');
+    canvasMap(floor, fc, -2); env.appendChild(floor);
+
+    // Floating shapes, placed on a ring around the learner
+    const palette = [C.mint, C.violet, C.coral, C.blue];
+    const kinds = ['a-octahedron', 'a-torus', 'a-box', 'a-icosahedron'];
+    for (let i = 0; i < 18; i++) {
+      const a = rnd() * Math.PI * 2, r = 5 + rnd() * 7, y = 0.7 + rnd() * 4.2;
+      const el = document.createElement(kinds[i % 4]);
+      const x = Math.cos(a) * r, z = Math.sin(a) * r;
+      el.setAttribute('position', `${x.toFixed(2)} ${y.toFixed(2)} ${z.toFixed(2)}`);
+      if (i % 4 === 1) { el.setAttribute('radius', 0.4); el.setAttribute('radius-tubular', 0.07); }
+      else if (i % 4 === 2) { el.setAttribute('width', 0.55); el.setAttribute('height', 0.55); el.setAttribute('depth', 0.55); }
+      else el.setAttribute('radius', 0.3 + rnd() * 0.3);
+      el.setAttribute('material', `color: ${palette[i % 4]}; metalness: 0.25; roughness: 0.35; opacity: 0.85; transparent: true`);
+      el.setAttribute('animation__spin', `property: rotation; to: ${i % 2 ? '360 180 0' : '0 360 360'}; loop: true; dur: ${24000 + i * 1700}; easing: linear`);
+      el.setAttribute('animation__bob', `property: position; to: ${x.toFixed(2)} ${(y + 0.35).toFixed(2)} ${z.toFixed(2)}; dir: alternate; loop: true; dur: ${4200 + i * 230}; easing: easeInOutSine`);
+      env.appendChild(el);
+    }
+  })();
+
+  /* ───────── Fit the stage to the device and mode ───────── */
+  function fitStage() {
+    if (scene.is('vr-mode')) return;
+    const portrait = window.innerWidth / window.innerHeight < 0.9;
+    stage.object3D.position.set(0, 1.5, portrait ? -4.4 : -2.2);
+    stage.object3D.scale.setScalar(1);
+  }
+  window.addEventListener('resize', fitStage);
+
+  scene.addEventListener('enter-vr', () => {
+    const ar = scene.is('ar-mode');
+    env.object3D.visible = !ar;
+    if (ar) { stage.object3D.position.set(0, 1.25, -1.6); stage.object3D.scale.setScalar(0.62); }
+    else { stage.object3D.position.set(0, 1.5, -2.4); stage.object3D.scale.setScalar(1); }
+  });
+  scene.addEventListener('exit-vr', () => { env.object3D.visible = true; fitStage(); });
+
+  /* ───────── HTML overlay buttons ───────── */
+  const howto = document.getElementById('howto'), btnHow = document.getElementById('btn-howto');
+  btnHow.addEventListener('click', () => { const o = howto.classList.toggle('open'); btnHow.setAttribute('aria-expanded', String(o)); });
+  const btnSound = document.getElementById('btn-sound');
+  btnSound.addEventListener('click', () => { muted = !muted; btnSound.textContent = muted ? 'Sound: off' : 'Sound: on'; btnSound.setAttribute('aria-pressed', String(!muted)); });
+  document.getElementById('btn-restart').addEventListener('click', () => {
+    progress.phish = progress.password = progress.files = false; celebrated = false; show('hub');
+  });
+
+  /* ───────── Start ───────── */
+  function start() { fitStage(); show('hub'); }
+  if (scene.hasLoaded) start(); else scene.addEventListener('loaded', start);
+
+  // Small handle used for automated checks and screenshots
+  window.DSL = { show, progress, get current() { return current; }, phishQ, phishResult };
+})();
+</script>
+</body>
+</html>
