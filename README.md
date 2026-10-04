@@ -2,8 +2,8 @@
 
 A portfolio site with one featured project: **Digital Skills Lab**, a WebXR learning prototype that runs in a desktop browser, on a phone, in a VR headset, and in AR on supported devices.
 
-**Live site:** `https://lindiwed-collab.github.io/AR-VR-Portfolio/`
-**Prototype:** `https://lindiwed-collab.github.io/AR-VR-Portfolio/xr-lab/`
+**Live site:** `https://arvrportfolio-xi.vercel.app/`
+
 
 ## What Digital Skills Lab is
 
