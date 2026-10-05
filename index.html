@@ -13,22 +13,6 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet" />
 
-<!--
-  ════════════════════════════════════════════════════════════════
-  HOW TO EDIT THIS PORTFOLIO — everything lives in the CONFIG block
-  at the bottom of this file (search for "CONFIG"). You do not need
-  to touch the HTML or CSS.
-
-    1. SHOWREEL.url  → paste your YouTube / Vimeo / Google Drive link
-                       (must be set to Public or "Anyone with the link").
-    2. PROJECTS      → one entry per project. Add, remove or reorder.
-    3. Anything left empty is simply not shown, so nothing looks unfinished.
-
-  HOSTING: this is a single file. Upload it to GitHub Pages, Netlify,
-  Vercel, or your TechBridge site, then open the link in a private
-  window to confirm it is public before you submit it.
-  ════════════════════════════════════════════════════════════════
--->
 
 <style>
   :root {
@@ -264,9 +248,7 @@
 </dialog>
 
 <script>
-/* ═════════════════════════════════════════════════════════════
-   CONFIG — edit only this block
-   ═════════════════════════════════════════════════════════════ */
+
 
 const PROFILE = {
   name: 'Lindiwe Dlomo',
@@ -274,45 +256,24 @@ const PROFILE = {
   statement:
     'I build software and design immersive VR and AR experiences, turning real learning and business needs into things people can step into.',
   email: 'lindiwed@techbridgeinnovations.co.za',
+  cell: '0761097412',
   linkedin: 'https://linkedin.com/in/lindiwedlomo-b50050b8',
   github: 'https://github.com/LindiweD-Collab',
   location: 'Johannesburg, South Africa',
 };
 
-/* Paste your showreel link here. YouTube, Vimeo, Google Drive and direct .mp4
-   links all work. Leave url empty to hide the showreel button.
-   Sharing must be Public (or "Anyone with the link"). */
+
 const SHOWREEL = {
   url: '',
   caption: 'Showreel',
 };
 
-/* One object per project. Empty fields are not shown.
-   category must be one of: 'XR / VR', 'Game Design', 'Animation', 'Interactive'.
-   media: image = a URL or relative path (e.g. 'img/vr-lab.jpg'); video = a YouTube/Vimeo/Drive/.mp4 link.
-   Replace or extend the entry below with what you actually built.
 
-   TEMPLATE (copy, paste above and fill in):
-   {
-     title: 'Project name',
-     category: 'Game Design',
-     year: '2025',
-     org: 'Where it was made (TechBridge Innovations, Umuzi, personal project)',
-     role: 'What you did (designer, developer, animator, all of the above)',
-     summary: 'Two sentences: what it is and who it is for.',
-     details: ['One thing you designed or built', 'Another decision or feature'],
-     tools: ['Tools and engines you used'],
-     outcome: 'What happened: who used it, what you learned, a result you can stand behind.',
-     image: '', video: '',
-     gallery: [{ src: 'img/screen-2.png', caption: 'What this screen shows' }],
-     links: [{ label: 'Play it', url: 'https://...' }, { label: 'Source code', url: 'https://github.com/...' }]
-   }
-*/
 const PROJECTS = [
   {
     title: 'Immersive VR and AR learning experiences',
     category: 'XR / VR',
-    year: '2024',
+    year: '2026',
     org: 'TechBridge Innovations',
     role: 'XR designer',
     summary:
@@ -349,9 +310,6 @@ const ABOUT = [
   'I am studying Business Analysis and Data at the International University of Applied Sciences, and I completed a Software Development learnership with Umuzi. My certifications include IBM DevOps, Google Data Analytics and Google Business Intelligence.',
 ];
 
-/* ═════════════════════════════════════════════════════════════
-   RENDERING — no need to edit below this line
-   ═════════════════════════════════════════════════════════════ */
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
