@@ -295,6 +295,36 @@ const PROJECTS = [
     ],
     links: [{ label: 'Launch the prototype', url: 'xr-lab/' }],
   },
+
+  {
+    title: 'XR Office Panic',
+    category: 'Game Design',
+    year: '2026',
+    org: 'Personal project',
+    role: 'Game designer and developer',
+    summary:
+      'A comedy WebXR game. You are the Chief Digital Emergency Intern and must fix a ridiculous virtual office before the manager comes back. It plays instantly on a laptop or phone, and in a VR headset.',
+    details: [
+      'Designed four different mission mechanics: a button hunt, a multi-step repair, a timed password puzzle and a throw-the-buzzword finale.',
+      'Built a scoring system with a shared Office Chaos meter, a manager countdown, a coffee level, six hidden secrets and ranked endings.',
+      'Made it playable everywhere: WASD and mouse on a laptop, a thumb stick on a phone, and thumbstick movement with laser-pointer interaction in VR.',
+    ],
+    tools: ['A-Frame', 'WebXR', 'JavaScript', 'HTML Canvas', 'Web Audio'],
+    outcome: '',
+    image: 'XR-Office-Panic/screenshots/02-office.png',
+    video: '',
+    gallery: [
+      { src: 'XR-Office-Panic/screenshots/03-coffee.png', caption: 'The Coffee Emergency' },
+      { src: 'XR-Office-Panic/screenshots/04-printer.png', caption: 'The Angry Printer' },
+      { src: 'XR-Office-Panic/screenshots/05-password.png', caption: 'The Password Disaster' },
+      { src: 'XR-Office-Panic/screenshots/06-meeting.png', caption: 'The Meeting From Hell' },
+    ],
+    links: [
+      { label: 'Play the game', url: 'XR-Office-Panic/' },
+      { label: 'Source code', url: 'https://github.com/LindiweD-Collab/AR-VR-Portfolio/tree/main/XR-Office-Panic' },
+    ],
+  },
+
 ];
 
 const SKILL_GROUPS = [
@@ -338,7 +368,6 @@ function mediaHTML(embed) {
     : `<iframe src="${esc(embed.src)}" title="Video" allow="${allow}" allowfullscreen loading="lazy"></iframe>`;
 }
 
-/* Scene art used when a project has no image yet */
 const SCENES = {
   'XR / VR': '<svg viewBox="0 0 96 64" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect fill="currentColor" fill-opacity=".14" x="6" y="12" width="84" height="38" rx="14"/><path d="M30 31a8 8 0 1 0 0 .01M66 31a8 8 0 1 0 0 .01M38 31h20"/></svg>',
   'Game Design': '<svg viewBox="0 0 96 64" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path fill="currentColor" fill-opacity=".14" d="M24 14h48c9 0 16 7 16 16v10c0 7-5 12-11 12-5 0-7-3-10-6l-3-3H32l-3 3c-3 3-5 6-10 6-6 0-11-5-11-12V30c0-9 7-16 16-16Z"/><path d="M26 28v14M19 35h14"/><circle cx="66" cy="31" r="2.6" fill="currentColor"/><circle cx="76" cy="38" r="2.6" fill="currentColor"/></svg>',
@@ -347,7 +376,7 @@ const SCENES = {
 };
 const PLAY_ICON = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.5-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5Z"/></svg>';
 
-/* Hero text */
+
 $('hero-name').textContent = PROFILE.name;
 $('hero-role').textContent = PROFILE.role;
 $('hero-statement').textContent = PROFILE.statement;
