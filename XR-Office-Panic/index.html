@@ -1,0 +1,1011 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<title>XR Office Panic | The World's Most Unqualified Office</title>
+<meta name="description" content="A comedy WebXR game. You are the Chief Digital Emergency Intern. Fix the office before the manager comes back. Plays on a laptop, a phone or a VR headset." />
+<style>
+  :root { --ink:#2B2D42; --coral:#FF5A5F; --sun:#FFC93C; --teal:#1FB5A8; --sky:#5BC0EB; --pink:#FF8FB1; --paper:#FFFDF5; --mint:#CFF3E8; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #27B3A6; color: var(--ink);
+    font-family: ui-rounded, "Arial Rounded MT Bold", "Trebuchet MS", system-ui, -apple-system, "Segoe UI", sans-serif; }
+  .hidden { display: none !important; }
+  #ui { position: fixed; inset: 0; z-index: 10; pointer-events: none; }
+  .card { pointer-events: auto; background: var(--paper); border: 3px solid var(--ink); border-radius: 16px; box-shadow: 5px 5px 0 var(--ink); padding: 10px 14px; }
+  button { font-family: inherit; cursor: pointer; }
+  .btn { font-weight: 800; font-size: 0.95rem; color: var(--ink); background: var(--sun); border: 3px solid var(--ink); border-radius: 12px; padding: 8px 14px; box-shadow: 3px 3px 0 var(--ink); transition: transform .08s, box-shadow .08s; }
+  .btn:hover { transform: translate(-1px,-1px); box-shadow: 4px 4px 0 var(--ink); }
+  .btn:active { transform: translate(2px,2px); box-shadow: 1px 1px 0 var(--ink); }
+  .btn.big { font-size: 1.35rem; padding: 14px 30px; background: var(--coral); color: #fff; border-radius: 16px; box-shadow: 5px 5px 0 var(--ink); }
+  .btn.teal { background: var(--teal); color: #fff; }
+  .btn:focus-visible { outline: 3px solid var(--sky); outline-offset: 3px; }
+
+  /* HUD */
+  #hud-left { position: absolute; top: 14px; left: 14px; width: 262px; display: flex; flex-direction: column; gap: 12px; }
+  #hud-right { position: absolute; top: 14px; right: 14px; display: flex; flex-direction: column; gap: 12px; align-items: flex-end; }
+  .stat { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-weight: 800; font-size: 0.92rem; padding: 3px 0; }
+  .stat b { text-transform: uppercase; font-size: 0.74rem; letter-spacing: 0.06em; color: #5b5e7a; }
+  .meter { flex: 1; height: 14px; background: #fff; border: 2.5px solid var(--ink); border-radius: 10px; overflow: hidden; }
+  .meter i { display: block; height: 100%; width: 20%; background: var(--coral); transition: width .35s, background .35s; }
+  .coffee { letter-spacing: 2px; color: #8a5a3c; }
+  .missions { list-style: none; margin: 0; padding: 0; }
+  .missions li { display: flex; gap: 9px; align-items: flex-start; padding: 5px 0; font-weight: 700; font-size: 0.86rem; line-height: 1.25; }
+  .missions li small { display: block; font-weight: 600; color: #5b5e7a; font-size: 0.74rem; }
+  .missions .tick { flex: 0 0 20px; height: 20px; margin-top: 1px; border: 2.5px solid var(--ink); border-radius: 6px; background: #fff; display: grid; place-items: center; font-size: 13px; line-height: 1; }
+  .missions li.done { opacity: 0.6; }
+  .missions li.done .name { text-decoration: line-through; }
+  .missions li.done .tick { background: var(--teal); color: #fff; }
+  .clock { text-align: right; font-weight: 800; }
+  .clock .t { display: block; font-size: 1.9rem; line-height: 1; letter-spacing: 1px; }
+  .clock .t.late { color: var(--coral); }
+  .clock small { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: #5b5e7a; }
+  .row-actions { display: flex; gap: 8px; pointer-events: auto; }
+  .row-actions .btn { padding: 6px 10px; font-size: 0.8rem; }
+
+  #toast { position: absolute; left: 50%; bottom: 36px; transform: translateX(-50%) translateY(20px); max-width: min(620px, 88vw); text-align: center; font-weight: 800; font-size: 1.05rem; line-height: 1.3;
+    background: var(--paper); border: 3px solid var(--ink); border-radius: 16px; box-shadow: 5px 5px 0 var(--ink); padding: 12px 20px; opacity: 0; transition: opacity .2s, transform .2s; pointer-events: none; }
+  #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  #toast.good { background: #D9F7EA; } #toast.bad { background: #FFE0E1; } #toast.secret { background: #FFF1B8; }
+
+  /* Full-screen cards */
+  .screen { position: absolute; inset: 0; display: grid; place-items: center; padding: 20px; background: rgba(39,179,166,0.55); backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px); pointer-events: auto; overflow-y: auto; }
+  .panel { width: min(640px, 100%); text-align: center; background: var(--paper); border: 4px solid var(--ink); border-radius: 26px; box-shadow: 9px 9px 0 var(--ink); padding: 30px 28px 26px; }
+  .kicker { display: inline-block; background: var(--sun); border: 3px solid var(--ink); border-radius: 30px; padding: 3px 14px; font-weight: 800; font-size: 0.78rem; letter-spacing: 0.06em; text-transform: uppercase; transform: rotate(-3deg); margin-bottom: 14px; }
+  h1.logo { margin: 0 0 6px; font-size: clamp(2.5rem, 9vw, 4.4rem); line-height: 0.95; font-weight: 900; letter-spacing: -0.02em; text-transform: uppercase; }
+  h1.logo .w { display: inline-block; white-space: nowrap; margin: 0 0.12em; }
+  h1.logo .w span { display: inline-block; text-shadow: 3px 3px 0 var(--ink); animation: hop 2.4s ease-in-out infinite; }
+  h1.logo .w span:nth-child(3n) { color: var(--coral); animation-delay: .15s; }
+  h1.logo .w span:nth-child(3n+1) { color: var(--teal); animation-delay: .3s; }
+  h1.logo .w span:nth-child(3n+2) { color: var(--sun); animation-delay: .45s; }
+  @keyframes hop { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-6px) } }
+  .tag { font-size: 1.2rem; font-weight: 700; margin: 14px 0 6px; }
+  .tag em { font-style: normal; color: var(--coral); }
+  .how { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; text-align: left; margin: 20px 0 22px; font-size: 0.86rem; font-weight: 600; }
+  .how div { background: #fff; border: 2.5px solid var(--ink); border-radius: 12px; padding: 8px 11px; line-height: 1.35; }
+  .how b { display: block; font-size: 0.76rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--coral); }
+  .fine { margin-top: 14px; font-size: 0.78rem; color: #5b5e7a; font-weight: 600; }
+  .rank { font-size: clamp(1.7rem, 6vw, 2.5rem); font-weight: 900; line-height: 1.05; margin: 4px 0 8px; text-transform: uppercase; }
+  .score-big { font-size: 3.1rem; font-weight: 900; line-height: 1; margin: 12px 0 4px; }
+  .score-big small { display: block; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.08em; color: #5b5e7a; }
+  .lines { text-align: left; margin: 14px auto 18px; max-width: 360px; font-weight: 700; font-size: 0.92rem; }
+  .lines div { display: flex; justify-content: space-between; border-bottom: 2px dashed #d9d5c4; padding: 5px 0; }
+  .lines div:last-child { border-bottom: 0; }
+  .chaos-tag { display: inline-block; margin-top: 6px; background: var(--coral); color: #fff; border: 3px solid var(--ink); border-radius: 12px; padding: 4px 14px; font-weight: 900; letter-spacing: 0.05em; }
+
+  #help { position: absolute; top: 74px; right: 14px; width: min(330px, 92vw); font-size: 0.86rem; line-height: 1.5; font-weight: 600; }
+  #help h2 { margin: 0 0 6px; font-size: 1rem; }
+  #help ul { margin: 0; padding-left: 18px; } #help li { margin-bottom: 4px; }
+
+  /* Touch joystick */
+  #stick { position: absolute; left: 26px; bottom: 30px; width: 124px; height: 124px; border-radius: 50%; background: rgba(255,253,245,0.55); border: 3px solid var(--ink); pointer-events: auto; touch-action: none; }
+  #knob { position: absolute; left: 36px; top: 36px; width: 52px; height: 52px; border-radius: 50%; background: var(--coral); border: 3px solid var(--ink); box-shadow: 2px 2px 0 var(--ink); }
+  .credit { position: absolute; left: 14px; bottom: 10px; font-size: 0.72rem; font-weight: 800; color: #fff; text-shadow: 1px 1px 0 var(--ink); pointer-events: none; }
+  @media (max-width: 760px) {
+    #hud-left { width: 172px; top: 10px; left: 10px; } #hud-right { top: 10px; right: 10px; gap: 8px; }
+    #hud-missions, .credit, #btn-sound, #btn-restart { display: none; }
+    #hud-stats { padding: 7px 10px; } .stat { font-size: 0.8rem; gap: 6px; } .stat b { font-size: 0.64rem; }
+    .clock { padding: 7px 10px; } .clock .t { font-size: 1.35rem; } .clock small:first-child { display: none; }
+    #toast { bottom: 176px; font-size: 0.9rem; max-width: 86vw; padding: 9px 14px; }
+    #help { top: 150px; right: 10px; }
+  }
+  @media (prefers-reduced-motion: reduce) { h1.logo .w span { animation: none; } }
+  .a-enter-vr-button, .a-enter-ar-button { z-index: 11; }
+</style>
+<script src="assets/aframe.min.js"></script>
+</head>
+
+<body>
+<div id="ui">
+  <!-- HUD -->
+  <div id="hud" class="hidden">
+    <div id="hud-left">
+      <div class="card" id="hud-stats">
+        <div class="stat"><b>Tasks</b><span id="h-tasks">0/4</span></div>
+        <div class="stat"><b>Chaos</b><div class="meter"><i id="h-chaos"></i></div><span id="h-chaos-t">20%</span></div>
+        <div class="stat"><b>Coffee</b><span class="coffee" id="h-coffee">&#9608;&#9608;&#9608;&#9617;</span></div>
+        <div class="stat"><b>Score</b><span id="h-score">0</span></div>
+      </div>
+      <div class="card" id="hud-missions">
+        <ul class="missions">
+          <li data-m="coffee"><span class="tick"></span><span><span class="name">The Coffee Emergency</span><small>Kitchenette, left wall</small></span></li>
+          <li data-m="printer"><span class="tick"></span><span><span class="name">The Angry Printer</span><small>Printer corner, right wall</small></span></li>
+          <li data-m="password"><span class="tick"></span><span><span class="name">The Password Disaster</span><small>Boss's desk, back right</small></span></li>
+          <li data-m="meeting"><span class="tick"></span><span><span class="name">The Meeting From Hell</span><small>Big screen, back wall</small></span></li>
+        </ul>
+      </div>
+    </div>
+    <div id="hud-right">
+      <div class="card clock">
+        <small>Manager back in</small>
+        <span class="t" id="h-time">7:00</span>
+        <small id="h-secrets">Secrets found: 0</small>
+      </div>
+      <div class="row-actions">
+        <button class="btn" id="btn-help" type="button" aria-expanded="false">Help</button>
+        <button class="btn" id="btn-sound" type="button" aria-pressed="true">Sound: on</button>
+        <button class="btn" id="btn-restart" type="button">Restart</button>
+      </div>
+    </div>
+    <div class="card hidden" id="help" role="region" aria-label="How to play">
+      <h2>How to play</h2>
+      <ul>
+        <li><b>Laptop:</b> WASD or arrow keys to move, drag the mouse to look, click to interact.</li>
+        <li><b>Phone:</b> thumb stick to move, drag to look, tap to interact.</li>
+        <li><b>VR headset:</b> press the VR button. Left stick moves, right stick turns, trigger interacts.</li>
+        <li>Finish all four tasks before the timer ends. Wrong answers raise the chaos.</li>
+        <li>Some things are hidden. Poke around.</li>
+      </ul>
+    </div>
+    <div id="toast" role="status" aria-live="polite"></div>
+    <div id="stick" class="hidden" aria-hidden="true"><div id="knob"></div></div>
+  </div>
+
+  <!-- Intro -->
+  <div id="intro" class="screen">
+    <div class="panel">
+      <span class="kicker">A very serious workplace simulation</span>
+      <h1 class="logo" id="logo" aria-label="XR Office Panic"></h1>
+      <p class="tag">Congratulations. You have been hired.<br /><em>Unfortunately, nobody knows why.</em></p>
+      <div class="how">
+        <div><b>Your title</b>Chief Digital Emergency Intern</div>
+        <div><b>Your mission</b>Fix the office before the manager comes back</div>
+        <div><b>Controls</b>WASD to move, drag to look, click to interact. VR supported.</div>
+      </div>
+      <button class="btn big" id="btn-enter" type="button">Enter office</button>
+      <p class="fine">Plays in your browser. No headset needed. Sound on for the full experience.</p>
+    </div>
+  </div>
+
+  <!-- Ending -->
+  <div id="outro" class="screen hidden">
+    <div class="panel">
+      <span class="kicker" id="o-kicker">Day one complete</span>
+      <div class="rank" id="o-rank">Office survivor</div>
+      <p class="tag" id="o-msg"></p>
+      <div class="score-big"><small>Final score</small><span id="o-score">0</span></div>
+      <div class="lines" id="o-lines"></div>
+      <span class="chaos-tag" id="o-chaos">CHAOS: LEGENDARY</span>
+      <div style="margin-top:20px"><button class="btn big" id="btn-again" type="button">Play again</button></div>
+    </div>
+  </div>
+  <div class="credit">Prototype by Lindiwe Dlomo, TechBridge Innovations</div>
+</div>
+
+<a-scene id="scene" background="color: #27B3A6" renderer="antialias: true" loading-screen="backgroundColor: #27B3A6; dotsColor: #FFC93C"
+  webxr="optionalFeatures: local-floor, bounded-floor, hit-test, dom-overlay; overlayElement: #ui" vr-mode-ui="enabled: true">
+
+  <a-entity id="amb" light="type: hemisphere; color: #ffffff; groundColor: #ffffff; intensity: 2.5"></a-entity>
+  <a-entity light="type: directional; color: #ffffff; intensity: 1.1" position="2 6 4"></a-entity>
+
+  <a-entity id="world"></a-entity>
+
+  <a-entity id="rig" position="0 0 3.4" rig-move>
+    <a-entity id="cam" camera="fov: 72; near: 0.05" look-controls="pointerLockEnabled: false" position="0 1.6 0"></a-entity>
+    <a-entity id="lhand" laser-controls="hand: left" raycaster="objects: .clickable; far: 9; showLine: true"></a-entity>
+    <a-entity id="rhand" laser-controls="hand: right" raycaster="objects: .clickable; far: 9; showLine: true"></a-entity>
+  </a-entity>
+  <a-entity cursor="rayOrigin: mouse; fuse: false" raycaster="objects: .clickable; far: 14"></a-entity>
+</a-scene>
+
+<script>
+(function () {
+  'use strict';
+  const THREE = AFRAME.THREE;
+  const scene = document.getElementById('scene');
+  const world = document.getElementById('world');
+  const rig = document.getElementById('rig');
+  const camEl = document.getElementById('cam');
+  const $ = (id) => document.getElementById(id);
+
+  /* ═══════════ SETTINGS you can tweak ═══════════ */
+  const MANAGER_MINUTES = 7;        // time before the manager walks back in
+  const COFFEE_DRAIN_SECONDS = 45;  // coffee level drops one bar this often until you fix the machine
+  const HACKER_SECONDS = 60;        // the "hacker ETA" during the password mission
+  const POINTS = { mission: 300, secret: 50, notesBonus: 100, mistake: 20, coffeeBar: 25 };
+
+  const C = { ink: '#2B2D42', coral: '#FF5A5F', sun: '#FFC93C', teal: '#1FB5A8', sky: '#5BC0EB', pink: '#FF8FB1',
+    paper: '#FFFDF5', mint: '#CFF3E8', blue: '#BDE6FA', butter: '#FFF0B8', orange: '#FF9F43', grey: '#9AA0B5', green: '#4CC38A', white: '#FFFFFF' };
+  const FONT = 'ui-rounded, "Arial Rounded MT Bold", "Trebuchet MS", system-ui, -apple-system, "Segoe UI", sans-serif';
+  const MONO = 'ui-monospace, "SF Mono", Menlo, Consolas, monospace';
+  const setFont = (ctx, size, weight, fam) => { ctx.font = `${weight || 700} ${size}px ${fam || FONT}`; };
+
+  /* ═══════════ Game state ═══════════ */
+  const NOTE_IDS = ['note1', 'note2', 'note3', 'note4'];
+  const TOTAL_SECRETS = 6;
+  const S = { gen: 0 };
+  function freshState() {
+    Object.assign(S, { started: false, ended: false, time: MANAGER_MINUTES * 60, chaos: 20, coffee: 3, mistakes: 0, coffeeTimer: 0,
+      done: { coffee: false, printer: false, password: false, meeting: false }, secrets: {}, hacker: HACKER_SECONDS, hackerOn: false, locked: false });
+  }
+  freshState();
+  const live = () => S.started && !S.ended;
+  const missionsDone = () => Object.values(S.done).filter(Boolean).length;
+  const secretsFound = () => Object.keys(S.secrets).length;
+  const notesAll = () => NOTE_IDS.every((id) => S.secrets[id]);
+  const liveScore = () => Math.max(0, missionsDone() * POINTS.mission + secretsFound() * POINTS.secret + (notesAll() ? POINTS.notesBonus : 0) - S.mistakes * POINTS.mistake);
+  const timeBonus = () => (missionsDone() === 4 ? Math.floor(S.time / 2) : 0);
+  const finalScore = () => liveScore() + S.coffee * POINTS.coffeeBar + timeBonus();
+  const later = (fn, ms) => { const g = S.gen; return setTimeout(() => { if (g === S.gen) fn(); }, ms); };
+
+  function chaosLabel(c) { return c >= 90 ? 'LEGENDARY' : c >= 70 ? 'VOLCANIC' : c >= 45 ? 'SPICY' : c >= 25 ? 'MILD PANIC' : 'SUSPICIOUSLY CALM'; }
+  function rankFor(score) {
+    if (score >= 1550) return { name: 'Employee of the month', msg: 'The manager returns to a spotless office. Somehow you also found the secrets. HR is nervous.' };
+    if (score >= 1250) return { name: 'Office survivor', msg: 'You survived your first day. HR has no idea how you did it.' };
+    if (score >= 800) return { name: 'Barely employed', msg: 'The office is mostly fine. Mostly. The manager squints at you for a long time.' };
+    return { name: 'Fired (with honours)', msg: 'The manager walks in. You are escorted out. Someone gives you a small plant.' };
+  }
+
+  /* ═══════════ Sound: tiny synthesized cues, no audio files ═══════════ */
+  let ac = null, muted = false;
+  function tone(f, d, type, v, delay, to) {
+    if (muted) return;
+    try {
+      ac = ac || new (window.AudioContext || window.webkitAudioContext)();
+      const t = ac.currentTime + (delay || 0), o = ac.createOscillator(), g = ac.createGain();
+      o.type = type || 'sine'; o.frequency.setValueAtTime(f, t); if (to) o.frequency.exponentialRampToValueAtTime(to, t + d);
+      g.gain.setValueAtTime(v || 0.05, t); g.gain.exponentialRampToValueAtTime(0.0001, t + d);
+      o.connect(g); g.connect(ac.destination); o.start(t); o.stop(t + d);
+    } catch (e) { /* sound is optional */ }
+  }
+  const sfx = {
+    click: () => tone(540, 0.07, 'triangle', 0.05),
+    good: () => { tone(660, 0.12); tone(880, 0.18, 'sine', 0.05, 0.1); },
+    bad: () => tone(220, 0.28, 'sawtooth', 0.035, 0, 110),
+    whoosh: () => tone(900, 0.28, 'sine', 0.035, 0, 180),
+    pop: () => tone(420, 0.1, 'square', 0.03, 0, 760),
+    alarm: () => { for (let i = 0; i < 6; i++) tone(i % 2 ? 620 : 880, 0.2, 'square', 0.03, i * 0.22); },
+    win: () => [523, 659, 784, 1047].forEach((f, i) => tone(f, 0.24, 'sine', 0.05, i * 0.11)),
+    sting: () => { tone(330, 0.2, 'triangle', 0.05); tone(247, 0.35, 'triangle', 0.05, 0.18); },
+  };
+
+  /* ═══════════ Tiny DOM helpers ═══════════ */
+  const mk = (tag, attrs) => { const e = document.createElement(tag); if (attrs) for (const k in attrs) e.setAttribute(k, attrs[k]); return e; };
+  const add = (p, e) => { p.appendChild(e); return e; };
+  const P = (x, y, z) => `${x} ${y} ${z}`;
+  const rnd = (() => { let s = 20261; return () => (s = (s * 16807) % 2147483647) / 2147483647; })();
+  const pick = (a) => a[Math.floor(rnd() * a.length)];
+
+  function solid(tag, parent, x, y, z, dims, color, extra) {
+    const a = Object.assign({ position: P(x, y, z), material: `color: ${color}; roughness: 0.85; metalness: 0.02` }, dims, extra || {});
+    return add(parent, mk(tag, a));
+  }
+  const box = (p, x, y, z, w, h, d, color, extra) => solid('a-box', p, x, y, z, { width: w, height: h, depth: d }, color, extra);
+  const cyl = (p, x, y, z, r, h, color, extra) => solid('a-cylinder', p, x, y, z, { radius: r, height: h }, color, extra);
+  const ball = (p, x, y, z, r, color, extra) => solid('a-sphere', p, x, y, z, { radius: r }, color, extra);
+  const flat = (p, x, y, z, w, h, color, extra) => solid('a-plane', p, x, y, z, { width: w, height: h }, color, extra);
+  function blob(p, x, z, rx, rz) {
+    return add(p, mk('a-circle', { position: P(x, 0.014, z), rotation: '-90 0 0', radius: 1, scale: `${rx} ${rz} 1`,
+      material: 'shader: flat; color: #1b2a3a; opacity: 0.16; transparent: true; depthWrite: false' }));
+  }
+
+  /* ═══════════ Canvas helpers ═══════════ */
+  function rr(ctx, x, y, w, h, r) {
+    ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath();
+  }
+  function sticker(ctx, x, y, w, h, r, fill, o) {
+    o = o || {}; const off = o.shadow === undefined ? 6 : o.shadow;
+    if (off) { rr(ctx, x + off, y + off, w, h, r); ctx.fillStyle = C.ink; ctx.fill(); }
+    rr(ctx, x, y, w, h, r); ctx.fillStyle = fill; ctx.fill(); ctx.lineWidth = o.lw || 4; ctx.strokeStyle = C.ink; ctx.stroke();
+  }
+  function wrap(ctx, text, x, y, maxW, lh) {
+    const words = String(text).split(' '); let line = '', yy = y;
+    for (const w of words) { const t = line ? line + ' ' + w : w; if (ctx.measureText(t).width > maxW && line) { ctx.fillText(line, x, yy); line = w; yy += lh; } else line = t; }
+    if (line) { ctx.fillText(line, x, yy); yy += lh; }
+    return yy;
+  }
+  function fit(ctx, text, maxW, size, weight, fam) { let s = size; setFont(ctx, s, weight, fam); while (ctx.measureText(text).width > maxW && s > 10) { s -= 1; setFont(ctx, s, weight, fam); } return s; }
+  const cv = (w, h) => { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; };
+
+  function texFrom(canvas, o) {
+    o = o || {};
+    const t = new THREE.CanvasTexture(canvas);
+    if (THREE.SRGBColorSpace) t.colorSpace = THREE.SRGBColorSpace;
+    t.anisotropy = 8;
+    if (o.repeat) { t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(o.repeat[0], o.repeat[1]); }
+    return t;
+  }
+  function useTexture(el, tex, o) {
+    el.addEventListener('loaded', () => {
+      const m = el.getObject3D('mesh'); if (!m) return;
+      m.material.map = tex; if (!o || o.toneMapped === false) m.material.toneMapped = false; m.material.needsUpdate = true;
+    });
+    return el;
+  }
+  function canvasPlane(parent, x, y, z, w, h, canvas, o) {
+    o = o || {};
+    const e = mk('a-plane', { position: P(x, y, z), width: w, height: h, rotation: o.rotation || '0 0 0',
+      material: o.lit ? 'roughness: 0.9; side: ' + (o.side || 'front') : 'shader: flat; transparent: true; side: ' + (o.side || 'front') });
+    useTexture(e, texFrom(canvas, o), { toneMapped: !o.lit });
+    return add(parent, e);
+  }
+
+  /* ═══════════ Interaction helpers ═══════════ */
+  const REG = [];
+  const setCursor = (c) => { if (scene.canvas) scene.canvas.style.cursor = c; };
+  function clickable(e, onClick, o) {
+    o = o || {};
+    e.classList.add('clickable'); e.opLabel = o.label || ''; REG.push(e);
+    e.addEventListener('click', () => { if (!live()) return; sfx.click(); onClick(e); });
+    e.addEventListener('mouseenter', () => { if (!live()) return; setCursor('pointer'); const m = e.getObject3D('mesh'); if (m && m.material && m.material.emissive) { m.material.emissive.set('#ffffff'); m.material.emissiveIntensity = 0.32; } });
+    e.addEventListener('mouseleave', () => { setCursor(''); const m = e.getObject3D('mesh'); if (m && m.material && m.material.emissive) m.material.emissiveIntensity = 0; });
+    return e;
+  }
+
+  /* A flat panel drawn with canvas 2D and placed in 3D. Crisp text at any distance. */
+  function makePanel(parent, o) {
+    const ppm = o.ppm || 500;
+    const c = cv(Math.round(o.w * ppm), Math.round(o.h * ppm));
+    const ctx = c.getContext('2d');
+    const el = mk('a-plane', { width: o.w, height: o.h, position: P(o.x || 0, o.y || 0, o.z || 0), rotation: `0 ${o.ry || 0} 0`, material: 'shader: flat; transparent: true; side: front' });
+    const st = Object.assign({ hover: false }, o.state || {});
+    let tex = null;
+    el.state = st;
+    el.redraw = (extra) => {
+      if (extra) Object.assign(st, extra);
+      c.width = c.width; // clears bitmap and resets context state
+      o.draw(ctx, c.width, c.height, st);
+      if (tex) tex.needsUpdate = true;
+    };
+    el.addEventListener('loaded', () => {
+      const m = el.getObject3D('mesh'); tex = texFrom(c); m.material.map = tex; m.material.toneMapped = false; m.material.needsUpdate = true;
+    });
+    if (o.onClick) {
+      el.classList.add('clickable'); el.opLabel = o.label || ''; REG.push(el);
+      const hs = o.hoverScale || 1.05;
+      el.addEventListener('mouseenter', () => { if (!live()) return; st.hover = true; setCursor('pointer'); el.object3D.scale.set(hs, hs, 1); el.redraw(); });
+      el.addEventListener('mouseleave', () => { st.hover = false; setCursor(''); el.object3D.scale.set(1, 1, 1); el.redraw(); });
+      el.addEventListener('click', () => { if (!live()) return; sfx.click(); o.onClick(el); });
+    }
+    el.redraw();
+    add(parent, el);
+    return el;
+  }
+  const removeEl = (e) => { if (e && e.parentNode) e.parentNode.removeChild(e); };
+
+  /* ═══════════ HUD, toasts, chaos ═══════════ */
+  const ambientEl = $('amb');
+  function mixColor(a, b, t) { const pa = new THREE.Color(a), pb = new THREE.Color(b); return '#' + pa.lerp(pb, t).getHexString(); }
+  function bars(n) { return '█'.repeat(n) + '░'.repeat(4 - n); }
+  const vr = { hud: null, panel: null, toast: '' };
+
+  function updateHud() {
+    const n = missionsDone();
+    $('h-tasks').textContent = `${n}/4`;
+    const ch = Math.round(S.chaos);
+    $('h-chaos').style.width = ch + '%';
+    $('h-chaos').style.background = ch >= 70 ? C.coral : ch >= 45 ? C.orange : C.sun;
+    $('h-chaos-t').textContent = ch + '%';
+    $('h-coffee').textContent = bars(S.coffee);
+    $('h-score').textContent = liveScore().toLocaleString('en-ZA').replace(/\s/g, ',');
+    $('h-secrets').textContent = `Secrets found: ${secretsFound()}`;
+    document.querySelectorAll('.missions li').forEach((li) => {
+      const d = S.done[li.dataset.m]; li.classList.toggle('done', d); li.querySelector('.tick').textContent = d ? '✓' : '';
+    });
+    ambientEl.setAttribute('light', 'color', mixColor('#ffffff', '#ffb8b8', Math.min(1, S.chaos / 140)));
+    if (vr.panel) vr.panel.redraw();
+  }
+  function fmtTime(t) { t = Math.max(0, Math.ceil(t)); return `${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')}`; }
+  function addChaos(n) { S.chaos = Math.max(0, Math.min(100, S.chaos + n)); updateHud(); }
+
+  let toastTimer = null;
+  function toast(msg, tone, ms) {
+    const t = $('toast'); t.textContent = msg; t.className = 'show ' + (tone || '');
+    clearTimeout(toastTimer); toastTimer = setTimeout(() => { t.className = ''; vr.toast = ''; if (vr.panel) vr.panel.redraw(); }, ms || 3600);
+    vr.toast = msg; if (vr.panel) vr.panel.redraw();
+  }
+
+  /* ═══════════ Movement: WASD / arrows, touch stick, VR sticks ═══════════ */
+  const OBST = []; // {x,z,hw,hd}
+  const obstacle = (x, z, hw, hd) => OBST.push({ x, z, hw, hd });
+  const PR = 0.3, BX = 6.7, BZ = 4.6;
+  function blocked(x, z) {
+    if (x < -BX || x > BX || z < -BZ || z > BZ) return true;
+    for (const o of OBST) if (Math.abs(x - o.x) < o.hw + PR && Math.abs(z - o.z) < o.hd + PR) return true;
+    return false;
+  }
+  const touch = { x: 0, y: 0 };
+  AFRAME.registerComponent('rig-move', {
+    schema: { speed: { default: 3.0 } },
+    init() {
+      this.keys = {}; this.stick = { x: 0, y: 0 }; this.snapAt = 0; this.q = new THREE.Quaternion(); this.eu = new THREE.Euler();
+      const down = (e) => { this.keys[e.code] = true; if (live() && /Arrow|Space/.test(e.code)) e.preventDefault(); };
+      window.addEventListener('keydown', down); window.addEventListener('keyup', (e) => { this.keys[e.code] = false; });
+      window.addEventListener('blur', () => { this.keys = {}; });
+      $('lhand').addEventListener('thumbstickmoved', (e) => { this.stick.x = e.detail.x; this.stick.y = e.detail.y; });
+      $('rhand').addEventListener('thumbstickmoved', (e) => {
+        const now = performance.now();
+        if (Math.abs(e.detail.x) > 0.75 && now - this.snapAt > 350) { this.snapAt = now; rig.object3D.rotation.y -= Math.sign(e.detail.x) * Math.PI / 6; }
+      });
+    },
+    tick(t, dt) {
+      if (!live() || S.locked) return;
+      const k = this.keys; let ix = 0, iz = 0;
+      if (k.KeyW || k.ArrowUp) iz -= 1; if (k.KeyS || k.ArrowDown) iz += 1;
+      if (k.KeyA || k.ArrowLeft) ix -= 1; if (k.KeyD || k.ArrowRight) ix += 1;
+      ix += this.stick.x + touch.x; iz += this.stick.y + touch.y;
+      const mag = Math.hypot(ix, iz); if (mag < 0.12) return;
+      if (mag > 1) { ix /= mag; iz /= mag; }
+      camEl.object3D.getWorldQuaternion(this.q); this.eu.setFromQuaternion(this.q, 'YXZ');
+      const yaw = this.eu.y, cs = Math.cos(yaw), sn = Math.sin(yaw), step = this.data.speed * Math.min(dt, 60) / 1000;
+      const dx = (ix * cs + iz * sn) * step, dz = (-ix * sn + iz * cs) * step;
+      const p = rig.object3D.position;
+      if (!blocked(p.x + dx, p.z)) p.x += dx;
+      if (!blocked(p.x, p.z + dz)) p.z += dz;
+    },
+  });
+  // On-screen thumb stick for phones and tablets
+  (function setupStick() {
+    const stick = $('stick'), knob = $('knob'); let id = null;
+    const move = (e) => {
+      const r = stick.getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+      let dx = (e.clientX - cx) / (r.width / 2), dy = (e.clientY - cy) / (r.height / 2); const m = Math.hypot(dx, dy); if (m > 1) { dx /= m; dy /= m; }
+      touch.x = dx; touch.y = dy; knob.style.transform = `translate(${dx * 34}px, ${dy * 34}px)`;
+    };
+    const end = () => { id = null; touch.x = touch.y = 0; knob.style.transform = ''; };
+    stick.addEventListener('pointerdown', (e) => { id = e.pointerId; stick.setPointerCapture(id); move(e); });
+    stick.addEventListener('pointermove', (e) => { if (e.pointerId === id) move(e); });
+    stick.addEventListener('pointerup', end); stick.addEventListener('pointercancel', end);
+  })();
+
+  /* ═══════════ WORLD TEXTURES ═══════════ */
+  function floorCanvas() {
+    const c = cv(256, 256), x = c.getContext('2d');
+    x.fillStyle = '#EEF3FB'; x.fillRect(0, 0, 256, 256); x.fillStyle = '#D9E5F6'; x.fillRect(0, 0, 128, 128); x.fillRect(128, 128, 128, 128);
+    x.strokeStyle = 'rgba(80,110,160,0.18)'; x.lineWidth = 3; x.strokeRect(0, 0, 256, 256); x.strokeRect(0, 0, 128, 128); x.strokeRect(128, 128, 128, 128);
+    return c;
+  }
+  function windowCanvas() {
+    const c = cv(800, 320), x = c.getContext('2d');
+    const g = x.createLinearGradient(0, 0, 0, 320); g.addColorStop(0, '#7fd3ff'); g.addColorStop(0.7, '#ffe9b0'); g.addColorStop(1, '#ffc8a2');
+    x.fillStyle = g; x.fillRect(0, 0, 800, 320);
+    x.fillStyle = '#FFE066'; x.beginPath(); x.arc(660, 90, 44, 0, 7); x.fill();
+    x.fillStyle = 'rgba(255,255,255,0.9)'; [[120, 70, 1], [380, 40, 1.3], [560, 120, 0.8]].forEach(([cx, cy, s]) => { x.beginPath(); x.ellipse(cx, cy, 60 * s, 20 * s, 0, 0, 7); x.ellipse(cx + 38 * s, cy + 6 * s, 44 * s, 17 * s, 0, 0, 7); x.fill(); });
+    const cols = ['#5F7FA8', '#6E8DB8', '#4F6F98'];
+    for (let i = 0, px = 0; px < 800; i++) { const w = 50 + (i * 37) % 60, h = 70 + (i * 53) % 130; x.fillStyle = cols[i % 3]; x.fillRect(px, 320 - h, w, h); x.fillStyle = 'rgba(255,255,255,0.35)'; for (let wy = 320 - h + 12; wy < 310; wy += 22) for (let wx = px + 8; wx < px + w - 10; wx += 16) x.fillRect(wx, wy, 7, 10); px += w + 4; }
+    x.strokeStyle = '#fff'; x.lineWidth = 12; x.strokeRect(0, 0, 800, 320); x.beginPath(); x.moveTo(267, 0); x.lineTo(267, 320); x.moveTo(533, 0); x.lineTo(533, 320); x.stroke();
+    return c;
+  }
+  function posterCanvas(w, h, bg, fg, lines, accent) {
+    const c = cv(w, h), x = c.getContext('2d');
+    sticker(x, 8, 8, w - 24, h - 24, 18, bg, { shadow: 8, lw: 6 });
+    x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillStyle = fg;
+    const n = lines.length, lh = (h - 70) / n;
+    lines.forEach((ln, i) => { const size = fit(x, ln, w - 80, Math.min(lh * 0.8, 70), 900); x.fillStyle = i === n - 1 && accent ? accent : fg; x.fillText(ln, w / 2, 40 + lh * (i + 0.5)); });
+    return c;
+  }
+  function screenCanvas(kind) {
+    const c = cv(320, 200), x = c.getContext('2d');
+    if (kind === 'sheet') {
+      x.fillStyle = '#fff'; x.fillRect(0, 0, 320, 200); x.fillStyle = '#1FB5A8'; x.fillRect(0, 0, 320, 22);
+      x.strokeStyle = '#cfd6e6'; x.lineWidth = 1; for (let i = 0; i < 9; i++) { x.beginPath(); x.moveTo(0, 22 + i * 20); x.lineTo(320, 22 + i * 20); x.stroke(); } for (let i = 0; i < 6; i++) { x.beginPath(); x.moveTo(i * 54, 22); x.lineTo(i * 54, 200); x.stroke(); }
+      x.fillStyle = '#FF5A5F'; x.fillRect(110, 66, 42, 12); x.fillStyle = '#5BC0EB'; x.fillRect(164, 106, 90, 12); x.fillStyle = '#FFC93C'; x.fillRect(4, 146, 60, 12);
+    } else if (kind === 'loading') {
+      x.fillStyle = '#2B2D42'; x.fillRect(0, 0, 320, 200); x.fillStyle = '#FFC93C'; x.font = '700 22px sans-serif'; x.textAlign = 'center'; x.fillText('LOADING... 99%', 160, 90);
+      x.fillStyle = '#fff'; x.fillRect(50, 110, 220, 18); x.fillStyle = '#FF5A5F'; x.fillRect(52, 112, 214, 14);
+    } else if (kind === 'mail') {
+      x.fillStyle = '#fff'; x.fillRect(0, 0, 320, 200); x.fillStyle = '#FF5A5F'; x.font = '900 54px sans-serif'; x.textAlign = 'center'; x.fillText('4,382', 160, 100);
+      x.fillStyle = '#2B2D42'; x.font = '700 20px sans-serif'; x.fillText('unread emails', 160, 134);
+    } else {
+      x.fillStyle = '#1b6b4f'; x.fillRect(0, 0, 320, 200); [[60, 40], [120, 40], [180, 40]].forEach(([a, b]) => { x.fillStyle = '#fff'; x.fillRect(a, b, 44, 62); x.fillStyle = '#FF5A5F'; x.font = '900 22px sans-serif'; x.textAlign = 'center'; x.fillText('♥', a + 22, b + 38); });
+    }
+    return c;
+  }
+  function noteCanvas(color, hint) {
+    const c = cv(128, 128), x = c.getContext('2d');
+    x.fillStyle = color; x.fillRect(0, 0, 128, 128); x.fillStyle = 'rgba(0,0,0,0.07)'; x.fillRect(0, 108, 128, 20);
+    x.strokeStyle = '#2B2D42'; x.lineWidth = 5; x.lineCap = 'round'; x.beginPath(); for (let i = 0; i < 4; i++) { x.moveTo(20, 30 + i * 22); x.bezierCurveTo(46, 18 + i * 22, 70, 42 + i * 22, 108 - (i === 3 ? 40 : 0), 30 + i * 22); } x.stroke();
+    return c;
+  }
+
+  /* ═══════════ BUILD: room ═══════════ */
+  let lightPanels = [];
+  function buildRoom() {
+    const floor = mk('a-plane', { position: '0 0 0', rotation: '-90 0 0', width: 14, height: 10, material: 'roughness: 0.95' });
+    useTexture(floor, texFrom(floorCanvas(), { repeat: [7, 5] }), { toneMapped: true }); add(world, floor);
+    add(world, mk('a-plane', { position: '0 3.4 0', rotation: '90 0 0', width: 14, height: 10, material: 'color: #FFFFFF; roughness: 1' }));
+    const wall = (x, y, z, ry, w, color) => add(world, mk('a-plane', { position: P(x, y, z), rotation: `0 ${ry} 0`, width: w, height: 3.4, material: `color: ${color}; roughness: 0.95` }));
+    wall(0, 1.7, -5, 0, 14, '#27B3A6'); wall(0, 1.7, 5, 180, 14, C.butter); wall(-7, 1.7, 0, 90, 10, C.mint); wall(7, 1.7, 0, -90, 10, C.blue);
+    [[0, -4.97, 14, 0.12, 0.06], [0, 4.97, 14, 0.12, 0.06]].forEach(([x, z, w, h, d]) => box(world, x, h / 2, z, w, h, d, C.ink));
+    box(world, -6.97, 0.06, 0, 0.06, 0.12, 10, C.ink); box(world, 6.97, 0.06, 0, 0.06, 0.12, 10, C.ink);
+    // stripe on the front wall for a bit of fun
+    box(world, 0, 0.9, 4.97, 14, 0.14, 0.02, C.coral);
+    // ceiling lights
+    lightPanels = [];
+    [-3.5, 0, 3.5].forEach((x) => [-2, 2].forEach((z) => lightPanels.push(add(world, mk('a-plane', { position: P(x, 3.39, z), rotation: '90 0 0', width: 1.7, height: 0.55, material: 'shader: flat; color: #FFFBE8' })))));
+    // windows
+    const win = windowCanvas();
+    canvasPlane(world, -6.97, 1.95, 2.6, 4, 1.6, win, { rotation: '0 90 0' }); canvasPlane(world, 6.97, 1.95, 2.6, 4, 1.6, win, { rotation: '0 -90 0' });
+    [[-6.95, 'x'], [6.95, 'x']].forEach(([x]) => { box(world, x, 2.78, 2.6, 0.06, 0.06, 4.1, '#fff'); box(world, x, 1.12, 2.6, 0.06, 0.06, 4.1, '#fff'); });
+    // exit door (front wall)
+    box(world, 0, 1.2, 4.97, 1.55, 2.4, 0.06, C.coral); box(world, 0, 1.15, 4.93, 1.3, 2.3, 0.04, C.orange); cyl(world, 0.5, 1.1, 4.88, 0.05, 0.05, C.sun, { rotation: '90 0 0' });
+    canvasPlane(world, 0, 2.55, 4.93, 1.1, 0.28, posterCanvas(440, 112, C.sun, C.ink, ['EXIT (NOT FOR INTERNS)']), { rotation: '0 180 0' });
+    // posters
+    canvasPlane(world, -3.6, 1.95, 4.95, 1.5, 1.05, posterCanvas(450, 315, C.pink, C.ink, ['KEEP CALM', 'AND BLAME', 'THE INTERN'], C.ink), { rotation: '0 180 0' });
+    canvasPlane(world, 3.6, 1.95, 4.95, 1.3, 1.05, posterCanvas(390, 315, C.paper, C.ink, ['EMPLOYEE', 'OF THE MONTH', '(vacant)'], C.coral), { rotation: '0 180 0' });
+    canvasPlane(world, 6.97, 1.95, -4.15, 1.2, 0.9, posterCanvas(360, 270, C.sun, C.ink, ['TEAM', 'Together Everyone', 'Attends Meetings'], C.coral), { rotation: '0 -90 0' });
+    canvasPlane(world, -6.97, 2.55, -4.1, 1.2, 0.9, posterCanvas(360, 270, C.coral, '#fff', ['THIS IS', 'FINE.'], C.sun), { rotation: '0 90 0' });
+    // rug
+    add(world, mk('a-circle', { position: '0 0.015 0.4', rotation: '-90 0 0', radius: 2.3, material: 'color: #1FB5A8; roughness: 1' }));
+    add(world, mk('a-ring', { position: '0 0.018 0.4', rotation: '-90 0 0', 'radius-inner': 1.7, 'radius-outer': 1.85, material: 'color: #FFC93C; roughness: 1' }));
+    add(world, mk('a-ring', { position: '0 0.018 0.4', rotation: '-90 0 0', 'radius-inner': 1.1, 'radius-outer': 1.2, material: 'color: #FF8FB1; roughness: 1' }));
+  }
+
+  /* ═══════════ BUILD: furniture ═══════════ */
+  function desk(x, z, accent, screenKind, ry) {
+    const g = add(world, mk('a-entity', { position: P(x, 0, z), rotation: `0 ${ry || 0} 0` }));
+    box(g, 0, 0.76, 0, 1.7, 0.06, 0.85, '#FFFFFF'); box(g, -0.8, 0.37, 0, 0.06, 0.74, 0.8, C.grey); box(g, 0.45, 0.37, 0.1, 0.55, 0.72, 0.6, accent);
+    box(g, 0.45, 0.58, 0.405, 0.42, 0.01, 0.01, C.ink); cyl(g, 0, 0.82, -0.15, 0.05, 0.1, C.ink); box(g, 0, 1.1, -0.15, 0.66, 0.42, 0.04, C.ink);
+    const scr = canvasPlane(g, 0, 1.1, -0.128, 0.6, 0.36, screenCanvas(screenKind)); scr.setAttribute('material', 'shader: flat; side: front');
+    box(g, -0.15, 0.795, 0.2, 0.42, 0.025, 0.14, '#E8EAF2'); cyl(g, -0.65, 0.84, 0.15, 0.04, 0.09, accent);
+    box(g, 0, 0.5, 0.78, 0.5, 0.07, 0.5, accent); box(g, 0, 0.82, 1.0, 0.5, 0.5, 0.07, accent); cyl(g, 0, 0.27, 0.78, 0.04, 0.45, C.ink); cyl(g, 0, 0.04, 0.78, 0.3, 0.04, C.ink);
+    blob(world, x, z + 0.4, 1.0, 0.8);
+    return { g, monitor: { x, y: 1.1, z: z - 0.15 } };
+  }
+  function plant(x, z, s) {
+    s = s || 1; const g = add(world, mk('a-entity', { position: P(x, 0, z) }));
+    cyl(g, 0, 0.2 * s, 0, 0.22 * s, 0.4 * s, pick([C.coral, C.sun, C.sky]));
+    [[0, 0.62, 0, 0.26], [0.13, 0.82, 0.05, 0.2], [-0.12, 0.78, -0.06, 0.2], [0.02, 0.98, 0.0, 0.16]].forEach(([a, b, c, r]) => ball(g, a * s, b * s, c * s, r * s, pick(['#3FB27F', '#35A06F', '#4CC38A'])));
+    blob(world, x, z, 0.38 * s, 0.38 * s);
+  }
+  function buildFurniture() {
+    const d1 = desk(-3.2, 0.2, C.coral, 'sheet'), d2 = desk(3.2, 0.2, C.teal, 'loading'), d3 = desk(-3.2, 2.5, C.sky, 'mail'), d4 = desk(3.2, 2.5, C.sun, 'cards');
+    [[-3.2, 0.45], [3.2, 0.45], [-3.2, 2.75], [3.2, 2.75]].forEach(([x, z]) => obstacle(x, z, 0.9, 0.75));
+    plant(-6.2, 4.2, 1.2); plant(6.2, 4.3, 1.1); plant(1.9, -4.4, 1.0); plant(-1.9, -4.4, 0.9);
+    [[-6.2, 4.2], [6.2, 4.3], [1.9, -4.4], [-1.9, -4.4]].forEach(([x, z]) => obstacle(x, z, 0.3, 0.3));
+    // water cooler
+    box(world, 6.4, 0.45, 0.3, 0.42, 0.9, 0.42, '#FFFFFF'); cyl(world, 6.4, 1.2, 0.3, 0.17, 0.45, C.sky, { material: 'color: #5BC0EB; opacity: 0.65; transparent: true; roughness: 0.2' });
+    box(world, 6.4, 0.95, 0.12, 0.1, 0.06, 0.06, C.coral); blob(world, 6.4, 0.3, 0.4, 0.4); obstacle(6.4, 0.3, 0.25, 0.25);
+    return { d1, d2, d3, d4 };
+  }
+
+  /* ═══════════ Generic mission station: a control board with choices ═══════════ */
+  function choiceStation(cfg) {
+    const g = add(world, mk('a-entity', { position: P(cfg.x, cfg.y, cfg.z), rotation: `0 ${cfg.ry} 0` }));
+    const st = { step: 0, msg: '', tone: 'info', locked: false, done: false };
+    const ppm = 520;
+    const display = makePanel(g, {
+      w: cfg.w, h: cfg.h, ppm,
+      draw: (ctx, W, H, s) => {
+        sticker(ctx, 8, 8, W - 22, H - 22, 26, C.paper, { shadow: 8, lw: 6 });
+        ctx.save(); rr(ctx, 8, 8, W - 22, H - 22, 26); ctx.clip(); ctx.fillStyle = cfg.color; ctx.fillRect(0, 0, W, 54); ctx.restore();
+        ctx.fillStyle = C.ink; ctx.fillRect(8, 54, W - 22, 4);
+        ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; setFont(ctx, 26, 900); ctx.fillStyle = C.ink; ctx.fillText(cfg.title, 28, 33);
+        if (cfg.steps.length > 1 && !st.done) { ctx.textAlign = 'right'; setFont(ctx, 22, 800); ctx.fillText(`STEP ${st.step + 1}/${cfg.steps.length}`, W - 30, 33); }
+        // screen
+        const sx = 26, sy = 74, sw = W - 58, sh = H * 0.36;
+        sticker(ctx, sx, sy, sw, sh, 16, C.ink, { shadow: 0, lw: 3 });
+        ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+        const step = cfg.steps[Math.min(st.step, cfg.steps.length - 1)];
+        let line1 = st.done ? cfg.doneText : step.prompt;
+        ctx.fillStyle = st.done ? C.green : C.sun; fit(ctx, line1, sw - 30, 34, 900, MONO);
+        const y2 = wrap(ctx, line1, W / 2, sy + 44, sw - 30, 38);
+        if (st.msg) { ctx.fillStyle = st.tone === 'good' ? '#7CFFB8' : st.tone === 'bad' ? '#FF8A8E' : '#fff'; setFont(ctx, 23, 700, MONO); wrap(ctx, st.msg, W / 2, Math.min(y2 + 8, sy + sh - 52), sw - 30, 28); }
+      },
+    });
+    let btns = [];
+    const palette = [C.sun, C.sky, C.pink, C.green, C.orange, '#C9B6FF'];
+    function layout() {
+      btns.forEach(removeEl); btns = [];
+      if (st.done) return;
+      const step = cfg.steps[st.step], n = step.choices.length, cols = n <= 4 ? 2 : 3, rows = Math.ceil(n / cols);
+      const areaTop = -cfg.h * 0.02, areaH = cfg.h * 0.48, gap = 0.035;
+      const bw = (cfg.w * 0.9 - gap * (cols - 1)) / cols, bh = Math.min(0.2, (areaH - gap * (rows - 1)) / rows);
+      step.choices.forEach((c, i) => {
+        const r = Math.floor(i / cols), col = i % cols, inRow = r === rows - 1 ? n - r * cols : cols;
+        const x = (col - (inRow - 1) / 2) * (bw + gap), y = areaTop - bh / 2 - r * (bh + gap);
+        const color = palette[i % palette.length];
+        btns.push(makePanel(g, {
+          w: bw, h: bh, x, y, z: 0.012, ppm: 420, label: c.label, onClick: () => choose(c),
+          draw: (ctx, W, H, s) => {
+            sticker(ctx, 6, 6, W - 16, H - 16, 18, color, { shadow: s.hover ? 4 : 7, lw: 4 });
+            if (s.hover) { rr(ctx, 6, 6, W - 16, H - 16, 18); ctx.fillStyle = 'rgba(255,255,255,0.35)'; ctx.fill(); }
+            ctx.fillStyle = C.ink; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            const words = c.label.split(' ');
+            if (words.length > 1 && ctx.measureText(c.label).width > 0) {
+              fit(ctx, c.label, W - 30, 30, 900);
+              if (ctx.measureText(c.label).width > W - 36 || c.label.length > 11) { const mid = Math.ceil(words.length / 2); const a = words.slice(0, mid).join(' '), b = words.slice(mid).join(' '); const s2 = Math.min(fit(ctx, a, W - 30, 28, 900), fit(ctx, b, W - 30, 28, 900)); setFont(ctx, s2, 900); ctx.fillText(a, W / 2, H / 2 - s2 * 0.55); ctx.fillText(b, W / 2, H / 2 + s2 * 0.55); return; }
+            }
+            fit(ctx, c.label, W - 30, 32, 900); ctx.fillText(c.label, W / 2, H / 2 + 2);
+          },
+        }));
+      });
+    }
+    function choose(c) {
+      if (st.locked || st.done) return;
+      if (c.fx) c.fx();
+      if (c.ok) {
+        st.msg = c.msg || 'Correct!'; st.tone = 'good'; sfx.good(); st.locked = true; display.redraw();
+        later(() => {
+          st.locked = false;
+          if (st.step < cfg.steps.length - 1) { st.step++; st.msg = ''; st.tone = 'info'; layout(); display.redraw(); }
+          else { st.done = true; layout(); display.redraw(); cfg.onDone(); }
+        }, 1400);
+      } else {
+        st.msg = c.msg; st.tone = 'bad'; sfx.bad(); S.mistakes++; addChaos(c.chaos || 6); display.redraw();
+      }
+    }
+    layout();
+    return { g, display, st };
+  }
+
+  /* ═══════════ Mission feedback: rings on the floor, confetti, alarm ═══════════ */
+  const rings = {};
+  function floorRing(id, x, z, color) {
+    const r = add(world, mk('a-ring', { position: P(x, 0.03, z), rotation: '-90 0 0', 'radius-inner': 0.5, 'radius-outer': 0.66, material: `shader: flat; color: ${color}; opacity: 0.9; transparent: true`,
+      animation: 'property: scale; from: 1 1 1; to: 1.18 1.18 1; dir: alternate; loop: true; dur: 900; easing: easeInOutSine' }));
+    rings[id] = r; return r;
+  }
+  function ringDone(id) { const r = rings[id]; if (!r) return; r.removeAttribute('animation'); r.setAttribute('material', 'shader: flat; color: #4CC38A; opacity: 0.9; transparent: true'); r.object3D.scale.set(1, 1, 1); }
+  function confetti(x, y, z, n) {
+    const cols = [C.coral, C.sun, C.teal, C.sky, C.pink];
+    for (let i = 0; i < (n || 40); i++) {
+      const e = add(world, mk('a-box', { position: P(x + (rnd() - 0.5) * 1.5, y, z + (rnd() - 0.5) * 1.5), width: 0.06, height: 0.02, depth: 0.09, material: `shader: flat; color: ${pick(cols)}`,
+        rotation: P(rnd() * 360, rnd() * 360, 0) }));
+      const tx = x + (rnd() - 0.5) * 3, tz = z + (rnd() - 0.5) * 3;
+      e.setAttribute('animation__fall', `property: position; to: ${tx.toFixed(2)} 0.03 ${tz.toFixed(2)}; dur: ${1100 + rnd() * 1300}; easing: easeOutQuad`);
+      e.setAttribute('animation__spin', `property: rotation; to: ${P(rnd() * 720, rnd() * 720, 0)}; dur: 2000; easing: linear`);
+      later(() => removeEl(e), 4200);
+    }
+  }
+  function alarmFlash() {
+    sfx.alarm(); let i = 0;
+    const iv = setInterval(() => { const on = i % 2 === 0; lightPanels.forEach((l) => l.setAttribute('material', 'shader: flat; color: ' + (on ? '#FF4040' : '#FFFBE8'))); if (++i > 9) { clearInterval(iv); lightPanels.forEach((l) => l.setAttribute('material', 'shader: flat; color: #FFFBE8')); } }, 230);
+  }
+
+  /* ═══════════ Mission completion ═══════════ */
+  function completeMission(id, msg) {
+    if (S.done[id]) return;
+    S.done[id] = true; addChaos(-8); ringDone(id);
+    if (id === 'coffee') S.coffee = 4;
+    sfx.win(); updateHud(); toast(msg + '  Task ' + missionsDone() + '/4 done.', 'good', 4200);
+    const at = { coffee: [-5.4, 1.5, -1.6], printer: [5.4, 1.5, -1.5], password: [4.7, 1.5, -2.3], meeting: [0, 2.5, -3.6] }[id];
+    confetti(at[0], at[1] + 1, at[2], 34);
+    if (missionsDone() === 4) later(() => endGame('done'), 3200);
+  }
+  function secret(id, msg, o) {
+    o = o || {};
+    if (S.secrets[id]) { toast(o.again || 'You already found that one. Nice memory, though.', 'secret', 2400); return false; }
+    S.secrets[id] = true; sfx.pop(); if (o.chaos) addChaos(o.chaos); updateHud();
+    toast(msg + `  (+${POINTS.secret} score, secret ${secretsFound()}/${TOTAL_SECRETS})`, 'secret', 5200);
+    if (notesAll() && NOTE_IDS.includes(id)) later(() => toast('Four notes, four meeting times. There was never a meeting. (+100 bonus)', 'secret', 5200), 5300);
+    return true;
+  }
+
+  /* ═══════════ MISSION 1: the coffee emergency ═══════════ */
+  function buildKitchenette() {
+    box(world, -6.6, 0.47, -1.6, 0.8, 0.94, 3.2, C.coral); box(world, -6.6, 0.96, -1.6, 0.84, 0.05, 3.24, '#FFFFFF');
+    [-2.6, -1.6, -0.6].forEach((z) => box(world, -6.19, 0.5, z, 0.02, 0.8, 0.9, '#FF7B7F'));
+    obstacle(-6.6, -1.6, 0.45, 1.7);
+    // the machine
+    box(world, -6.62, 1.55, -1.6, 0.7, 1.2, 1.3, C.teal); box(world, -6.62, 2.2, -1.6, 0.74, 0.12, 1.34, '#14897F'); cyl(world, -6.3, 1.0, -1.15, 0.05, 0.1, C.ink); box(world, -6.28, 1.04, -1.6, 0.1, 0.1, 0.2, C.ink);
+    cyl(world, -6.22, 1.02, -1.6, 0.06, 0.09, '#fff'); ball(world, -6.3, 2.0, -2.12, 0.05, C.coral);
+    // mugs and a microwave
+    [-0.5, -0.25, -2.9].forEach((z, i) => cyl(world, -6.55, 1.04, z, 0.05, 0.1, [C.sun, C.sky, C.pink][i]));
+    box(world, -6.6, 1.2, -0.45, 0.45, 0.4, 0.55, '#E8EAF2'); box(world, -6.36, 1.2, -0.45, 0.02, 0.28, 0.4, C.ink);
+    // fridge
+    box(world, -6.5, 0.95, -4.1, 0.85, 1.9, 0.9, '#F4F6FB'); box(world, -6.05, 1.35, -3.75, 0.03, 0.5, 0.05, C.grey); box(world, -6.05, 0.7, -3.75, 0.03, 0.5, 0.05, C.grey);
+    obstacle(-6.5, -4.1, 0.45, 0.5); blob(world, -6.4, -4.1, 0.6, 0.6);
+    floorRing('coffee', -5.1, -1.6, C.teal);
+    choiceStation({
+      id: 'coffee', x: -6.265, y: 1.6, z: -1.6, ry: 90, w: 1.15, h: 0.95, title: 'COFFEE-O-TRON 3000', color: C.teal, doneText: 'TEA SERVED. 418 RESOLVED.',
+      onDone: () => completeMission('coffee', 'Tea served. The machine is happy. It was a teapot all along.'),
+      steps: [{
+        prompt: 'ERROR 418: I\'M A TEAPOT',
+        choices: [
+          { label: 'ESPRESSO', msg: 'Still a teapot. Still not an espresso machine.' },
+          { label: 'LATTE', msg: 'I\'m a teapot, not a barista.' },
+          { label: 'HOT WATER', msg: 'Technically correct. Technically useless.' },
+          { label: 'TEA', ok: true, msg: 'Tea accepted. The teapot is at peace.' },
+          { label: 'DECAF', msg: 'ERROR: decaf does not exist in this office.', chaos: 8 },
+          { label: 'SELF DESTRUCT', msg: 'Please do not. HR has paperwork for that.', chaos: 10 },
+        ],
+      }],
+    });
+  }
+
+  /* ═══════════ MISSION 2: the angry printer ═══════════ */
+  let paperPile = [], jamEl = null;
+  function buildPrinter() {
+    box(world, 6.6, 0.4, -1.5, 0.8, 0.8, 2.6, '#FFFFFF'); box(world, 6.6, 0.8, -1.5, 0.84, 0.05, 2.64, C.sky);
+    obstacle(6.6, -1.5, 0.45, 1.35);
+    box(world, 6.58, 1.4, -1.5, 0.7, 1.2, 1.5, '#F4F6FB'); box(world, 6.58, 2.04, -1.5, 0.74, 0.1, 1.54, C.sky);
+    box(world, 6.15, 0.86, -1.5, 0.4, 0.05, 1.1, '#E1E6F2'); ball(world, 6.24, 1.95, -0.85, 0.05, C.coral);
+    box(world, 6.6, 2.3, -1.5, 0.5, 0.3, 1.0, '#E8EAF2');
+    // scatter of 47 "I QUIT." pages
+    const pc = cv(128, 180), px = pc.getContext('2d'); px.fillStyle = '#fff'; px.fillRect(0, 0, 128, 180); px.strokeStyle = '#d9dde8'; px.lineWidth = 3; px.strokeRect(2, 2, 124, 176);
+    px.fillStyle = C.coral; px.font = '900 30px sans-serif'; px.textAlign = 'center'; px.fillText('I QUIT.', 64, 98);
+    const ptex = texFrom(pc); paperPile = [];
+    for (let i = 0; i < 47; i++) {
+      const e = mk('a-plane', { position: P((4.5 + rnd() * 1.6).toFixed(2), (0.016 + i * 0.0006).toFixed(4), (-3.4 + rnd() * 3.6).toFixed(2)), rotation: `-90 0 ${(rnd() * 360).toFixed(0)}`, width: 0.21, height: 0.297, material: 'shader: flat; side: double' });
+      useTexture(e, ptex, { toneMapped: false }); add(world, e); paperPile.push(e);
+    }
+    floorRing('printer', 4.9, -1.5, C.sky);
+    choiceStation({
+      id: 'printer', x: 6.225, y: 1.42, z: -1.5, ry: -90, w: 1.3, h: 0.95, title: 'PRINT-O-RAGE 9000', color: C.sky, doneText: 'JAM CLEARED. PRINTER CALM.',
+      onDone: () => { paperPile.forEach((e, i) => { e.setAttribute('animation', `property: scale; to: 0.01 0.01 1; dur: 500; delay: ${i * 25}; easing: easeInQuad`); later(() => removeEl(e), 600 + i * 25); }); removeEl(jamEl); completeMission('printer', 'Printer reset. All 47 resignations recycled.'); },
+      steps: [
+        { prompt: '47 COPIES OF "I QUIT." STOP THE MADNESS', choices: [
+          { label: 'STOP JOB', ok: true, msg: 'Job cancelled. 47 pages is plenty.' },
+          { label: 'PRINT 47 MORE', msg: '94 copies queued. The printer feels seen.', chaos: 9 },
+          { label: 'UNPLUG IT', msg: 'It runs on pure spite. Still printing.' },
+          { label: 'ASK NICELY', msg: 'It said no. In three languages.' },
+        ] },
+        { prompt: 'FIND THE PAPER JAM', choices: [
+          { label: 'FRONT COVER', msg: 'Just toner and regret.' },
+          { label: 'SIDE PANEL', msg: 'A lost USB stick. Not yours.' },
+          { label: 'REAR DOOR', ok: true, msg: 'FOUND IT! A crumpled "I QUIT." stuck sideways.', fx: () => { if (!jamEl) { jamEl = ball(world, 6.1, 1.0, -0.55, 0.13, '#FFFFFF', { scale: '1 0.8 1.2' }); jamEl.setAttribute('animation', 'property: position; to: 5.7 0.16 -0.4; dur: 600; easing: easeOutQuad'); } } },
+          { label: 'PAPER TRAY', msg: 'Empty. It printed all of it.' },
+        ] },
+        { prompt: 'PRESS THE RIGHT CONTROL', choices: [
+          { label: 'RESET', ok: true, msg: 'Reset accepted. The printer sighs.' },
+          { label: 'KICK PRINTER', msg: 'Ouch. It kicked back (emotionally).', chaos: 10 },
+          { label: 'TEST PAGE', msg: 'It printed "I STILL QUIT."' },
+        ] },
+      ],
+    });
+  }
+
+  /* ═══════════ MISSION 3: the password disaster ═══════════ */
+  const PW_ROWS = [
+    { chars: ['b', 'n', 'x', 'z', 'q', 'j'], color: C.sky }, { chars: ['G', 'R', 'F', 'K', 'V', 'D'], color: '#C9B6FF' },
+    { chars: ['8', '6', '7', '4', '9', '0'], color: C.green }, { chars: ['!', '#', '@', '$', '%', '&'], color: C.pink },
+  ];
+  const PW_RULES = [
+    { label: '12+ characters', test: (p) => p.length >= 12 }, { label: 'An uppercase letter', test: (p) => /[A-Z]/.test(p) },
+    { label: 'A lowercase letter', test: (p) => /[a-z]/.test(p) }, { label: 'A number', test: (p) => /[0-9]/.test(p) },
+    { label: 'A symbol', test: (p) => /[^A-Za-z0-9]/.test(p) },
+  ];
+  let pwUI = null, bossScreen = null;
+  function buildBoss() {
+    box(world, 4.9, 0.4, -3.9, 2.1, 0.8, 1.0, C.coral); box(world, 4.9, 0.82, -3.9, 2.2, 0.06, 1.1, '#FFFFFF'); obstacle(4.9, -3.9, 1.15, 0.6);
+    box(world, 4.9, 1.35, -4.15, 1.4, 0.86, 0.05, C.ink); cyl(world, 4.9, 0.95, -4.15, 0.07, 0.2, C.ink);
+    box(world, 4.9, 0.86, -3.5, 0.9, 0.025, 0.28, '#E8EAF2');
+    canvasPlane(world, 4.0, 0.95, -3.55, 0.5, 0.14, posterCanvas(300, 84, C.sun, C.ink, ['THE BOSS']));
+    // boss chair
+    box(world, 4.9, 0.55, -4.65, 0.7, 0.08, 0.6, C.ink); box(world, 4.9, 1.05, -4.88, 0.7, 0.9, 0.08, C.ink);
+    floorRing('password', 4.9, -2.4, C.coral);
+    bossScreen = makePanel(world, { w: 1.3, h: 0.78, x: 4.9, y: 1.35, z: -4.118, ppm: 440, label: 'BOSS PC', onClick: () => openPassword(),
+      state: { phase: 'weak', pw: '' }, hoverScale: 1.02,
+      draw: (ctx, W, H, s) => {
+        ctx.fillStyle = '#1b1f3a'; ctx.fillRect(0, 0, W, H); ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillStyle = s.hover ? '#243059' : '#232851'; ctx.fillRect(14, 14, W - 28, H - 28);
+        setFont(ctx, 30, 900); ctx.fillStyle = C.sun; ctx.fillText('BOSS-PC  //  LOGIN', W / 2, 52);
+        setFont(ctx, 22, 700, MONO); ctx.fillStyle = '#9fb0ff'; ctx.fillText(s.phase === 'safe' ? 'PASSWORD STATUS: ACCEPTABLE' : 'CURRENT PASSWORD:', W / 2, 100);
+        if (s.phase === 'safe') { setFont(ctx, 38, 900, MONO); ctx.fillStyle = C.green; ctx.fillText('•'.repeat(Math.min(14, s.pw.length)), W / 2, H / 2 + 8); setFont(ctx, 26, 800); ctx.fillStyle = '#7CFFB8'; ctx.fillText('HACKER BLOCKED', W / 2, H - 70); }
+        else { setFont(ctx, 54, 900, MONO); ctx.fillStyle = C.coral; ctx.fillText('password123', W / 2, H / 2 + 6); setFont(ctx, 24, 800); ctx.fillStyle = '#FF9EA1'; ctx.fillText('SECURITY LEVEL: FRAMED ON A WALL', W / 2, H / 2 + 62); setFont(ctx, 26, 900); ctx.fillStyle = C.sun; ctx.fillText(s.hover ? '>> CLICK TO FIX IT <<' : 'CLICK TO CHANGE PASSWORD', W / 2, H - 52); }
+      } });
+  }
+  function openPassword() {
+    if (pwUI || S.done.password) return;
+    S.hackerOn = true; S.hacker = HACKER_SECONDS; toast('A hacker is on the way. Build a stronger password, fast!', 'bad', 4200); sfx.sting();
+    const g = add(world, mk('a-entity', { position: '4.4 1.55 -2.7' })); pwUI = g;
+    let pw = '', lockBtn = null;
+    const display = makePanel(g, { w: 1.5, h: 0.34, x: -0.5, y: 0.55, ppm: 420, state: { pw: '' }, draw: (ctx, W, H, s) => {
+      sticker(ctx, 6, 6, W - 16, H - 16, 22, C.paper, { shadow: 6, lw: 5 }); ctx.textBaseline = 'middle';
+      ctx.textAlign = 'left'; setFont(ctx, 18, 900); ctx.fillStyle = '#6b6e8a'; ctx.fillText(s.pw ? 'NEW PASSWORD' : 'CURRENT (TERRIBLE)', 26, 30);
+      ctx.textAlign = 'right'; ctx.fillStyle = S.hacker < 15 ? C.coral : C.ink; ctx.fillText('HACKER ETA ' + fmtTime(S.hacker), W - 26, 30);
+      ctx.textAlign = 'left'; const show = s.pw || 'password123'; fit(ctx, show, W - 60, 46, 900, MONO); ctx.fillStyle = s.pw ? C.ink : '#c9a0a2'; ctx.fillText(show, 26, H / 2 + 22);
+      if (!s.pw) { const w = ctx.measureText(show).width; ctx.strokeStyle = C.coral; ctx.lineWidth = 5; ctx.beginPath(); ctx.moveTo(26, H / 2 + 22); ctx.lineTo(26 + w, H / 2 + 22); ctx.stroke(); }
+    } });
+    const checklist = makePanel(g, { w: 0.82, h: 1.28, x: 0.99, y: -0.05, ppm: 420, state: { pw: '' }, draw: (ctx, W, H, s) => {
+      const passed = PW_RULES.filter((r) => r.test(s.pw)).length, col = passed <= 2 ? C.coral : passed < 5 ? C.orange : C.green;
+      sticker(ctx, 6, 6, W - 16, H - 16, 24, C.paper, { shadow: 6, lw: 5 }); ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+      setFont(ctx, 28, 900); ctx.fillStyle = C.ink; ctx.fillText('Strength', 26, 42);
+      for (let i = 0; i < 5; i++) { sticker(ctx, 26 + i * ((W - 60) / 5), 70, (W - 60) / 5 - 6, 18, 9, i < passed ? col : '#e6e1d0', { shadow: 0, lw: 2.5 }); }
+      setFont(ctx, 22, 900); ctx.fillStyle = col; ctx.fillText(passed <= 2 ? 'Weak' : passed < 5 ? 'Getting there' : 'Strong', 26, 116);
+      PW_RULES.forEach((r, i) => { const y = 168 + i * 66, ok = r.test(s.pw); ctx.beginPath(); ctx.arc(46, y, 18, 0, 7); ctx.fillStyle = ok ? C.green : '#fff'; ctx.fill(); ctx.lineWidth = 3.5; ctx.strokeStyle = C.ink; ctx.stroke();
+        if (ok) { ctx.strokeStyle = '#fff'; ctx.lineWidth = 5; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(38, y); ctx.lineTo(44, y + 7); ctx.lineTo(55, y - 8); ctx.stroke(); }
+        setFont(ctx, 21, ok ? 900 : 700); ctx.fillStyle = ok ? C.ink : '#6b6e8a'; ctx.textAlign = 'left'; ctx.fillText(r.label, 76, y + 1); });
+    } });
+    pwUI.display = display;
+    const update = () => {
+      display.redraw({ pw }); checklist.redraw({ pw });
+      const all = PW_RULES.every((r) => r.test(pw));
+      if (all && !lockBtn) { sfx.good(); lockBtn = makePanel(g, { w: 0.82, h: 0.22, x: 0.99, y: -0.8, z: 0.02, ppm: 420, label: 'LOCK IT IN', onClick: () => finishPassword(pw), draw: (ctx, W, H, s) => {
+        sticker(ctx, 6, 6, W - 16, H - 16, 20, C.green, { shadow: s.hover ? 3 : 6, lw: 4 }); ctx.fillStyle = C.ink; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; setFont(ctx, 30, 900); ctx.fillText('LOCK IT IN', W / 2, H / 2 + 2); } }); }
+      else if (!all && lockBtn) { removeEl(lockBtn); lockBtn = null; }
+    };
+    const gx = -0.5 - (5 * 0.25) / 2;
+    PW_ROWS.forEach((row, ri) => row.chars.forEach((ch, ci) => makePanel(g, { w: 0.22, h: 0.22, x: gx + ci * 0.25, y: 0.2 - ri * 0.25, ppm: 300, label: 'KEY ' + ch, hoverScale: 1.12,
+      onClick: () => { if (pw.length < 22) { pw += ch; update(); } },
+      draw: (ctx, W, H, s) => { sticker(ctx, 4, 4, W - 12, H - 12, 16, row.color, { shadow: s.hover ? 2 : 5, lw: 3.5 }); ctx.fillStyle = C.ink; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; setFont(ctx, 44, 900, MONO); ctx.fillText(ch, W / 2, H / 2 + 3); } })));
+    [['DELETE', -1.1, () => { pw = pw.slice(0, -1); update(); }], ['CLEAR', -0.45, () => { pw = ''; update(); }]].forEach(([label, x, fn]) => makePanel(g, { w: 0.6, h: 0.2, x: x + 0.1, y: -0.8, ppm: 360, label, onClick: fn,
+      draw: (ctx, W, H, s) => { sticker(ctx, 5, 5, W - 14, H - 14, 18, C.sun, { shadow: s.hover ? 3 : 6, lw: 4 }); ctx.fillStyle = C.ink; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; setFont(ctx, 28, 900); ctx.fillText(label, W / 2, H / 2 + 2); } }));
+    pwUI.type = (s) => { pw = s; update(); };
+  }
+  function finishPassword(pw) {
+    S.hackerOn = false; removeEl(pwUI); pwUI = null;
+    bossScreen.redraw({ phase: 'safe', pw }); bossScreen.classList.remove('clickable'); const i = REG.indexOf(bossScreen); if (i > -1) REG.splice(i, 1);
+    completeMission('password', 'Password upgraded. The hacker leaves a thank-you note and a one-star review.');
+  }
+
+  /* ═══════════ MISSION 4: the meeting from hell ═══════════ */
+  const BUZZ = ['synergize', 'leverage', 'pivot', 'disrupt', 'circle back', 'deep dive', 'touch base', 'move the needle', 'paradigm shift', 'low-hanging fruit'];
+  let slide = null; const meeting = { words: [], used: {} };
+  function slideDraw(ctx, W, H, s) {
+    sticker(ctx, 10, 10, W - 28, H - 28, 30, '#FFFFFF', { shadow: 0, lw: 8 });
+    ctx.save(); rr(ctx, 10, 10, W - 28, H - 28, 30); ctx.clip(); ctx.fillStyle = C.coral; ctx.fillRect(0, 0, W, 96); ctx.restore();
+    ctx.textBaseline = 'middle'; ctx.textAlign = 'left'; setFont(ctx, 44, 900); ctx.fillStyle = '#fff'; ctx.fillText('SYNERGY CORP', 50, 54);
+    ctx.textAlign = 'right'; setFont(ctx, 30, 800); ctx.fillText('CONFIDENTIAL (EVERYTHING IS)', W - 50, 54);
+    ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic'; setFont(ctx, 118, 900); ctx.fillStyle = C.ink; ctx.fillText('Q4 STRATEGY:', 56, 250);
+    fit(ctx, 'WE NEED MORE SYNERGY', W - 112, 100, 900); ctx.fillStyle = C.coral; ctx.fillText('WE NEED MORE SYNERGY', 56, 360);
+    // sentence with blanks
+    const tokens = ['To win Q4 we will ', 0, ' our ', 1, ', ', 2, ' the ', 3, ' and ', 4, ' at scale.'];
+    let x = 56, y = 478; const lh = 118, maxX = W - 60; setFont(ctx, 64, 800);
+    tokens.forEach((t) => {
+      if (typeof t === 'string') { setFont(ctx, 64, 800); const parts = t.split(/(?<= )/); parts.forEach((pt) => { const w = ctx.measureText(pt).width; if (x + w > maxX && pt.trim()) { x = 56; y += lh; } ctx.fillStyle = C.ink; ctx.fillText(pt, x, y); x += w; }); }
+      else {
+        const word = s.words[t]; setFont(ctx, 58, 900); const w = word ? ctx.measureText(word).width + 40 : 250;
+        if (x + w > maxX) { x = 56; y += lh; }
+        if (word) { sticker(ctx, x, y - 64, w, 88, 18, pick2(t), { shadow: 4, lw: 4 }); ctx.fillStyle = C.ink; ctx.fillText(word, x + 20, y); }
+        else { ctx.strokeStyle = C.ink; ctx.lineWidth = 6; ctx.setLineDash([14, 10]); ctx.beginPath(); ctx.moveTo(x, y + 8); ctx.lineTo(x + w, y + 8); ctx.stroke(); ctx.setLineDash([]); }
+        x += w + 8;
+      }
+    });
+    // synergy meter
+    const n = s.words.filter(Boolean).length; ctx.fillStyle = C.ink; setFont(ctx, 34, 900); ctx.fillText('SYNERGY LEVEL', 56, H - 70);
+    sticker(ctx, 360, H - 104, 640, 44, 22, '#fff', { shadow: 0, lw: 5 }); if (n) { rr(ctx, 364, H - 100, 632 * (n / 5), 36, 18); ctx.fillStyle = C.teal; ctx.fill(); }
+    ctx.textAlign = 'left'; setFont(ctx, 34, 900); ctx.fillStyle = C.ink; ctx.fillText(`${n * 20}%`, 1030, H - 70);
+    if (s.approved) { ctx.save(); ctx.translate(W - 340, H - 130); ctx.rotate(-0.16); sticker(ctx, -230, -62, 460, 124, 18, '#FFE9EA', { shadow: 0, lw: 8 }); ctx.fillStyle = C.coral; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; setFont(ctx, 44, 900); ctx.fillText('APPROVED', 0, -16); setFont(ctx, 30, 900); ctx.fillText('(BY NOBODY)', 0, 28); ctx.restore(); }
+  }
+  const pick2 = (i) => [C.sun, C.sky, C.pink, '#9BE7C4', C.orange][i % 5];
+  function buildMeeting() {
+    box(world, 0, 2.0, -4.97, 5.3, 3.0, 0.05, C.ink);
+    slide = makePanel(world, { w: 5.0, h: 2.8, x: 0, y: 2.0, z: -4.94, ppm: 360, state: { words: [null, null, null, null, null], approved: false }, draw: slideDraw });
+    box(world, 0, 3.22, -1.4, 0.4, 0.14, 0.3, C.ink); box(world, 0, 3.32, -1.4, 0.05, 0.1, 0.05, C.grey);
+    floorRing('meeting', -0.4, -3.4, C.sun);
+    // buzzword bank
+    const g = add(world, mk('a-entity', { position: '-4.7 1.75 -4.94' }));
+    makePanel(g, { w: 2.5, h: 2.1, ppm: 380, draw: (ctx, W, H) => {
+      sticker(ctx, 8, 8, W - 22, H - 22, 26, C.paper, { shadow: 7, lw: 6 }); ctx.save(); rr(ctx, 8, 8, W - 22, H - 22, 26); ctx.clip(); ctx.fillStyle = C.sun; ctx.fillRect(0, 0, W, 80); ctx.restore(); ctx.fillStyle = C.ink; ctx.fillRect(8, 80, W - 22, 4);
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; setFont(ctx, 36, 900); ctx.fillText('BUZZWORD BANK', W / 2, 46); setFont(ctx, 21, 800); ctx.fillStyle = '#6b6e8a'; ctx.fillText('Click a word to throw it at the slide', W / 2, H - 28); } });
+    BUZZ.forEach((word, i) => {
+      const col = i % 2, row = Math.floor(i / 2), x = (col - 0.5) * 1.18, y = 0.5 - row * 0.3;
+      makePanel(g, { w: 1.12, h: 0.26, x, y, z: 0.012, ppm: 380, label: word, hoverScale: 1.06, onClick: (el) => throwWord(word, i, el),
+        draw: (ctx, W, H, s) => { const used = meeting.used[word]; sticker(ctx, 5, 5, W - 14, H - 14, 18, used ? '#e4e0d0' : pick2(i), { shadow: used ? 0 : s.hover ? 3 : 6, lw: 4 }); ctx.fillStyle = used ? '#9a9784' : C.ink; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; fit(ctx, word, W - 28, 32, 900); ctx.fillText(word, W / 2, H / 2 + 2);
+          if (used) { ctx.strokeStyle = '#9a9784'; ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(20, H / 2); ctx.lineTo(W - 20, H / 2); ctx.stroke(); } } });
+    });
+  }
+  function throwWord(word, idx, chip) {
+    if (meeting.used[word] || S.done.meeting) return;
+    const slot = meeting.words.length; if (slot >= 5) return;
+    meeting.used[word] = true; meeting.words.push(word); chip.redraw(); sfx.whoosh();
+    const from = new THREE.Vector3(); chip.object3D.getWorldPosition(from);
+    const card = makePanel(world, { w: 0.9, h: 0.26, x: from.x, y: from.y, z: from.z + 0.05, ppm: 360, draw: (ctx, W, H) => { sticker(ctx, 5, 5, W - 12, H - 12, 18, pick2(idx), { shadow: 5, lw: 4 }); ctx.fillStyle = C.ink; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; fit(ctx, word, W - 28, 36, 900); ctx.fillText(word, W / 2, H / 2 + 2); } });
+    card.setAttribute('animation__fly', `property: position; to: ${(-1 + slot * 0.5).toFixed(2)} ${(1.9 + (slot % 2) * 0.2).toFixed(2)} -4.9; dur: 620; easing: easeInQuad`);
+    card.setAttribute('animation__spin', 'property: rotation; to: 0 0 360; dur: 620; easing: linear');
+    later(() => {
+      removeEl(card); sfx.pop();
+      const words = [null, null, null, null, null]; meeting.words.forEach((w, k) => { words[k] = w; });
+      slide.redraw({ words });
+      if (meeting.words.length === 5) {
+        slide.redraw({ words, approved: true });
+        later(() => completeMission('meeting', 'Slide complete. Nobody understood it, so everyone approved it.'), 500);
+      }
+    }, 650);
+  }
+
+  /* ═══════════ SECRETS ═══════════ */
+  function sticky(parent, id, x, y, z, ry, color, text) {
+    const e = mk('a-plane', { position: P(x, y, z), rotation: `0 ${ry} ${(rnd() * 14 - 7).toFixed(1)}`, width: 0.17, height: 0.17, material: 'shader: flat; side: front' });
+    useTexture(e, texFrom(noteCanvas(color)), { toneMapped: false }); add(parent, e);
+    clickable(e, () => secret(id, `Sticky note: "${text}"`), { label: 'NOTE ' + id });
+    return e;
+  }
+  function buildSecrets(f) {
+    sticky(world, 'note1', -3.52, 1.28, 0.073, 0, '#FFE066', 'Meeting moved to 14:00.');
+    sticky(world, 'note2', 2.9, 1.3, 0.073, 0, '#FF8FB1', 'Meeting moved to 15:00.');
+    sticky(world, 'note3', -6.05, 1.6, -4.4, 90, '#9BE7C4', 'Meeting cancelled.');
+    sticky(world, 'note4', 5.42, 1.62, -4.112, 0, '#8ED8FF', 'There was never a meeting.');
+    // terminal on the front-right desk
+    const lines = []; const term = cv(320, 200), tx = term.getContext('2d'); let typed = false;
+    const drawTerm = () => { tx.fillStyle = '#10151f'; tx.fillRect(0, 0, 320, 200); tx.fillStyle = '#4CFF9A'; tx.font = '700 15px monospace'; tx.textAlign = 'left'; lines.forEach((l, i) => tx.fillText(l, 12, 30 + i * 22)); tx.fillStyle = '#4CFF9A'; if (!typed) { tx.fillText('$ _', 12, 30); tx.fillStyle = '#7da88c'; tx.font = '600 12px monospace'; tx.fillText('(click the keyboard)', 12, 180); } };
+    drawTerm();
+    const tex = texFrom(term); const scr = mk('a-plane', { position: P(3.2, 1.1, 2.5 - 0.124), width: 0.6, height: 0.36, material: 'shader: flat; side: front' }); useTexture(scr, tex, { toneMapped: false }); add(world, scr);
+    const kb = box(world, 3.05, 0.808, 2.7, 0.44, 0.04, 0.16, '#E8EAF2'); kb.setAttribute('material', 'color: #E8EAF2; roughness: 0.8');
+    clickable(kb, () => {
+      if (typed) { toast('$ sudo make_me_coffee  →  Permission denied. Nice try, intern.', 'secret', 3000); return; }
+      typed = true; lines.push('$ sudo make_me_coffee', 'Permission denied.', 'Nice try, intern.'); drawTerm(); tex.needsUpdate = true;
+      secret('terminal', 'Terminal: "sudo make_me_coffee"  →  Permission denied. Nice try, intern.');
+    }, { label: 'TERMINAL' });
+    // DO NOT TOUCH
+    box(world, -5.6, 0.45, -4.2, 0.5, 0.9, 0.5, '#FFFFFF'); box(world, -5.6, 0.93, -4.2, 0.54, 0.06, 0.54, C.sun);
+    const btn = cyl(world, -5.6, 1.0, -4.2, 0.13, 0.08, '#FF2D2D'); obstacle(-5.6, -4.2, 0.3, 0.3); blob(world, -5.6, -4.2, 0.45, 0.45);
+    canvasPlane(world, -5.6, 1.3, -4.2, 0.5, 0.3, posterCanvas(300, 180, C.sun, C.ink, ['DO NOT', 'TOUCH'], C.coral), { rotation: '0 0 0' });
+    let presses = 0;
+    clickable(btn, () => {
+      presses++; addChaos(50); alarmFlash();
+      if (presses === 1) secret('button', 'YOU TOUCHED THE BUTTON. Office chaos +50.', { chaos: 0 });
+      else toast(presses === 2 ? 'Again?! Office chaos +50. Seriously.' : 'The button has questions. Office chaos +50.', 'bad', 3000);
+    }, { label: 'DO NOT TOUCH' });
+  }
+
+  /* ═══════════ Game loop ═══════════ */
+  AFRAME.registerComponent('game-clock', {
+    tick(t, dt) {
+      if (!live()) return; const d = Math.min(dt, 100) / 1000;
+      S.time -= d; $('h-time').textContent = fmtTime(S.time); $('h-time').classList.toggle('late', S.time < 60);
+      if (!S.done.coffee && S.coffee > 0) { S.coffeeTimer += d; if (S.coffeeTimer >= COFFEE_DRAIN_SECONDS) { S.coffeeTimer = 0; S.coffee--; updateHud(); if (S.coffee === 1) toast('Coffee level critical. Somebody fix that machine.', 'bad', 3200); } }
+      if (S.hackerOn) { S.hacker -= d; if (pwUI && pwUI.display) pwUI.display.redraw(); if (S.hacker <= 0) { S.hacker = HACKER_SECONDS; addChaos(15); S.mistakes++; sfx.bad(); toast('The hacker arrived, laughed at password123 and left. Chaos +15. Try again!', 'bad', 4200); } }
+      if (S.time <= 0) endGame('time');
+    },
+  });
+  scene.setAttribute('game-clock', '');
+
+  function endGame(kind) {
+    if (S.ended) return; S.ended = true; S.hackerOn = false;
+    const score = finalScore(), rank = rankFor(score);
+    $('o-kicker').textContent = kind === 'done' ? 'Day one complete' : 'The manager is back';
+    $('o-rank').textContent = rank.name; $('o-msg').textContent = kind === 'time' && missionsDone() < 4 ? 'Time is up. ' + rank.msg : rank.msg;
+    $('o-score').textContent = score.toLocaleString('en-ZA').replace(/\s/g, ',');
+    const rows = [['Tasks completed', `${missionsDone()}/4`, missionsDone() * POINTS.mission], ['Secrets found', `${secretsFound()}/${TOTAL_SECRETS}`, secretsFound() * POINTS.secret + (notesAll() ? POINTS.notesBonus : 0)],
+      ['Mistakes', `${S.mistakes}`, -S.mistakes * POINTS.mistake], ['Coffee level', bars(S.coffee), S.coffee * POINTS.coffeeBar], ['Time bonus', fmtTime(S.time), timeBonus()]];
+    $('o-lines').innerHTML = rows.map(([a, b, c]) => `<div><span>${a}: ${b}</span><span>${c >= 0 ? '+' : ''}${c}</span></div>`).join('');
+    $('o-chaos').textContent = 'CHAOS LEVEL: ' + chaosLabel(S.chaos);
+    $('outro').classList.remove('hidden'); sfx.win(); confetti(0, 3, 0, 50);
+    if (scene.is('vr-mode')) showEnd3D(score, rank);
+  }
+  function showEnd3D(score, rank) {
+    const q = new THREE.Quaternion(), e = new THREE.Euler(); camEl.object3D.getWorldQuaternion(q); e.setFromQuaternion(q, 'YXZ');
+    const yaw = e.y, p = rig.object3D.position;
+    const g = add(world, mk('a-entity', { position: P(p.x - Math.sin(yaw) * 2, 1.5, p.z - Math.cos(yaw) * 2), rotation: `0 ${yaw * 180 / Math.PI} 0` }));
+    makePanel(g, { w: 1.5, h: 0.95, ppm: 420, draw: (ctx, W, H) => { sticker(ctx, 8, 8, W - 22, H - 22, 28, C.paper, { shadow: 8, lw: 6 }); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = C.coral; setFont(ctx, 46, 900); ctx.fillText(rank.name.toUpperCase(), W / 2, 90);
+      ctx.fillStyle = C.ink; setFont(ctx, 78, 900); ctx.fillText(score.toLocaleString('en-ZA').replace(/\s/g, ','), W / 2, 200); setFont(ctx, 24, 800); ctx.fillText('CHAOS: ' + chaosLabel(S.chaos), W / 2, 270); } });
+    makePanel(g, { w: 0.8, h: 0.2, y: -0.62, z: 0.02, ppm: 420, label: 'PLAY AGAIN', onClick: () => restart(), draw: (ctx, W, H, s) => { sticker(ctx, 6, 6, W - 16, H - 16, 20, C.coral, { shadow: s.hover ? 3 : 6, lw: 4 }); ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; setFont(ctx, 34, 900); ctx.fillText('PLAY AGAIN', W / 2, H / 2 + 2); } });
+  }
+
+  /* ═══════════ VR wrist-free HUD (head-locked, small) ═══════════ */
+  function buildVrHud() {
+    vr.hud = add(camEl, mk('a-entity', { position: '0 -0.34 -0.95', visible: 'false' }));
+    vr.panel = makePanel(vr.hud, { w: 0.62, h: 0.2, ppm: 560, draw: (ctx, W, H) => {
+      sticker(ctx, 5, 5, W - 14, H - 14, 18, C.paper, { shadow: 4, lw: 3.5 }); ctx.textBaseline = 'middle'; ctx.textAlign = 'left'; setFont(ctx, 24, 900); ctx.fillStyle = C.ink;
+      ctx.fillText(`Tasks ${missionsDone()}/4   Chaos ${Math.round(S.chaos)}%   ${bars(S.coffee)}   ${fmtTime(S.time)}`, 20, 32);
+      if (vr.toast) { setFont(ctx, 20, 700); ctx.fillStyle = C.coral; ctx.textAlign = 'left'; wrap(ctx, vr.toast.slice(0, 120), 20, 70, W - 40, 26); } } });
+  }
+  scene.addEventListener('enter-vr', () => { if (!S.started) startGame(); vr.hud && vr.hud.setAttribute('visible', !scene.is('ar-mode')); });
+  scene.addEventListener('exit-vr', () => { vr.hud && vr.hud.setAttribute('visible', false); });
+
+  /* ═══════════ Build, start, restart ═══════════ */
+  function buildAll() {
+    while (world.firstChild) world.removeChild(world.firstChild);
+    REG.length = 0; OBST.length = 0; meeting.words = []; meeting.used = {}; pwUI = null; jamEl = null; Object.keys(rings).forEach((k) => delete rings[k]);
+    buildRoom(); const f = buildFurniture(); buildKitchenette(); buildPrinter(); buildBoss(); buildMeeting(); buildSecrets(f);
+  }
+  function startGame() {
+    if (S.started) return;
+    S.started = true; $('intro').classList.add('hidden'); $('hud').classList.remove('hidden');
+    if (window.matchMedia('(pointer: coarse)').matches) $('stick').classList.remove('hidden');
+    sfx.good(); updateHud(); toast('You are the Chief Digital Emergency Intern. Fix the office before the manager comes back!', '', 5600);
+  }
+  function restart() {
+    S.gen++; freshState(); $('outro').classList.add('hidden'); $('help').classList.add('hidden');
+    buildAll(); rig.object3D.position.set(0, 0, 3.4); rig.object3D.rotation.set(0, 0, 0);
+    S.started = true; $('hud').classList.remove('hidden'); updateHud(); $('h-time').textContent = fmtTime(S.time); toast('New shift. Same chaos. Good luck, intern.', '', 3600);
+  }
+
+  // intro logo letters
+  $('logo').innerHTML = 'XR Office Panic'.split(' ').map((w) => `<span class="w">${w.split('').map((ch) => `<span>${ch}</span>`).join('')}</span>`).join(' ');
+  $('btn-enter').addEventListener('click', startGame);
+  $('btn-again').addEventListener('click', restart);
+  $('btn-restart').addEventListener('click', () => { if (confirm('Restart the game?')) restart(); });
+  $('btn-help').addEventListener('click', () => { const o = $('help').classList.toggle('hidden'); $('btn-help').setAttribute('aria-expanded', String(!o)); });
+  $('btn-sound').addEventListener('click', () => { muted = !muted; $('btn-sound').textContent = muted ? 'Sound: off' : 'Sound: on'; $('btn-sound').setAttribute('aria-pressed', String(!muted)); });
+
+  function boot() { buildAll(); buildVrHud(); updateHud(); }
+  if (scene.hasLoaded) boot(); else scene.addEventListener('loaded', boot);
+
+  // Handle for automated checks and screenshots
+  window.OP = {
+    S, REG, startGame, restart, endGame, finalScore, liveScore,
+    tp(x, z, yawDeg) { rig.object3D.position.set(x, 0, z); rig.object3D.rotation.set(0, (yawDeg || 0) * Math.PI / 180, 0); },
+    click(label) { const el = REG.find((e) => e.opLabel === label && e.parentNode && e.object3D.visible); if (!el) return false; el.emit('click'); return true; },
+    labels() { return REG.filter((e) => e.parentNode).map((e) => e.opLabel); },
+    type(s) { if (pwUI) pwUI.type(s); },
+    blocked, fmtTime,
+  };
+})();
+</script>
+</body>
+</html>
